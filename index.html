@@ -3,141 +3,183 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>인디고 창문 게시판</title>
+    <title>반투명 건물 유리창 게시판</title>
     <style>
-        /* 전체 배경: 건물 외벽 느낌의 회색 */
+        /* 기본 배경 (건물 사진을 반투명하게 덮어줄 어두운 배경) */
         body {
-            background-color: #d1d1d1;
             margin: 0;
             padding: 50px 20px;
+            background-color: #1a1a24; /* 어두운 인디고 느낌의 배경 */
+            font-family: 'Pretendard', sans-serif;
+            min-height: 100vh;
             display: flex;
             justify-content: center;
-            font-family: 'Pretendard', sans-serif;
         }
 
-        /* 12개 창문을 담는 그리드 컨테이너 */
-        .facade-grid {
+        /* 건물 사진 배경 (반투명 처리) */
+        .building-bg {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            background-image: url('5575.jpg'); /* 여기에 사진 파일이 연결됩니다 */
+            background-size: cover;
+            background-position: center;
+            opacity: 0.3; /* 0.0 ~ 1.0 사이로 건물 사진의 투명도를 조절하세요 */
+            z-index: -1;
+            filter: grayscale(30%); /* 사진을 살짝 흑백 톤으로 눌러줍니다 */
+        }
+
+        /* 12개 게시판을 담는 그리드 */
+        .board-grid {
             display: grid;
-            grid-template-columns: repeat(4, 1fr); /* 4열 구성 */
-            gap: 25px;
-            max-width: 1000px;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 20px;
+            max-width: 1100px;
             width: 100%;
+            z-index: 1;
         }
 
-        /* 개별 창문 스타일 */
-        .window {
-            background: #fdfdfd; /* 창문 안쪽 밝은 회색/흰색 */
-            border: 3px solid #3f51b5; /* 인디고 색상 창살 */
-            border-radius: 2px;
-            position: relative;
-            cursor: pointer;
+        /* 평소 상태: 투명한 유리창 느낌 */
+        .glass-board {
+            background: rgba(255, 255, 255, 0.1); /* 투명한 흰색 */
+            backdrop-filter: blur(10px); /* 뒤쪽 건물을 흐리게 (유리 효과) */
+            border: 1px solid rgba(63, 81, 181, 0.5); /* 은은한 인디고 창살 */
+            border-radius: 4px;
+            height: 200px; /* 접혀있을 때 높이 */
             overflow: hidden;
-            transition: all 0.5s cubic-bezier(0.4, 0, 0.2, 1);
-            height: 250px; /* 기본 높이 */
-            box-shadow: inset 0 0 15px rgba(0,0,0,0.05), 5px 5px 15px rgba(0,0,0,0.1);
+            cursor: pointer;
+            transition: all 0.6s cubic-bezier(0.25, 1, 0.5, 1);
+            position: relative;
+            box-shadow: inset 0 0 20px rgba(255,255,255,0.05), 0 4px 10px rgba(0,0,0,0.2);
         }
 
-        /* 클릭해서 확장(긴 창)되었을 때 */
-        .window.expanded {
-            height: 600px; /* 길게 늘어나는 높이 */
-            grid-row: span 2; /* 그리드에서 두 칸 차지 (선택 사항) */
+        /* 클릭 시 상태: 길게 펼쳐진 게시판 */
+        .glass-board.expanded {
+            height: 600px; /* 펼쳐졌을 때 높이 */
+            background: rgba(255, 255, 255, 0.95); /* 글이 잘 보이도록 불투명해짐 */
+            backdrop-filter: blur(0px);
+            border: 2px solid rgba(63, 81, 181, 1); /* 뚜렷한 인디고 창살 */
+            grid-row: span 2; /* 아래로 길게 확장 */
             z-index: 10;
-            box-shadow: 0 10px 30px rgba(63, 81, 181, 0.2);
+            box-shadow: 0 15px 35px rgba(0,0,0,0.4);
         }
 
-        /* 사진 영역 */
-        .photo-space {
+        /* 접혀있을 때 보이는 텍스트 */
+        .preview-text {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            color: rgba(255, 255, 255, 0.8);
+            font-size: 0.9em;
+            letter-spacing: 2px;
+            transition: opacity 0.3s;
+        }
+
+        /* 펼쳐졌을 때 숨김 */
+        .glass-board.expanded .preview-text {
+            opacity: 0;
+            pointer-events: none;
+        }
+
+        /* 게시판 실제 내용 (사진 + 시) */
+        .board-content {
+            padding: 20px;
+            opacity: 0;
+            transform: translateY(20px);
+            transition: all 0.5s ease;
+            transition-delay: 0.2s; /* 창이 펴진 후 내용이 서서히 나타남 */
+            height: 100%;
+            box-sizing: border-box;
+            display: none;
+        }
+
+        /* 창이 펼쳐지면 내용 표시 */
+        .glass-board.expanded .board-content {
+            opacity: 1;
+            transform: translateY(0);
+            display: block;
+        }
+
+        /* 내부 사진 영역 */
+        .content-image {
             width: 100%;
-            height: 180px;
-            background: #ececec;
+            height: 200px;
+            background-color: #e0e0e0;
+            border-radius: 4px;
+            margin-bottom: 20px;
             display: flex;
             align-items: center;
             justify-content: center;
-            border-bottom: 1px solid #ddd;
-            color: #999;
-            font-size: 0.9em;
+            color: #888;
+            overflow: hidden;
         }
 
-        .photo-space img {
+        .content-image img {
             width: 100%;
             height: 100%;
             object-fit: cover;
         }
 
-        /* 시/글 영역 */
-        .text-space {
-            padding: 15px;
-            color: #333;
-        }
-
-        .text-space h3 {
+        /* 내부 텍스트 영역 */
+        .content-text h3 {
             margin: 0 0 10px 0;
-            font-size: 1.1em;
             color: #3f51b5;
         }
 
-        .text-space p {
-            margin: 0;
-            line-height: 1.6;
+        .content-text p {
+            color: #444;
+            line-height: 1.8;
             font-size: 0.95em;
-            /* 기본 상태에서는 글이 잘리도록 설정 */
-            display: -webkit-box;
-            -webkit-line-clamp: 3;
-            -webkit-box-orient: vertical;
-            overflow: hidden;
         }
-
-        /* 확장 시 글이 모두 보이도록 설정 */
-        .window.expanded .text-space p {
-            display: block;
-            overflow: visible;
-        }
-
-        /* 접기/펴기 아이콘 (오른쪽 하단) */
-        .toggle-btn {
-            position: absolute;
-            bottom: 10px;
-            right: 10px;
-            color: #3f51b5;
-            font-weight: bold;
-            font-size: 1.2em;
-        }
-
-        /* 반응형: 화면이 작아지면 2열로 변경 */
-        @media (max-width: 768px) {
-            .facade-grid { grid-template-columns: repeat(2, 1fr); }
+        
+        @media (max-width: 800px) {
+            .board-grid { grid-template-columns: repeat(2, 1fr); }
         }
     </style>
 </head>
 <body>
 
-<div class="facade-grid">
+<div class="building-bg"></div>
+
+<div class="board-grid" id="gridContainer">
     </div>
 
 <script>
-    const grid = document.querySelector('.facade-grid');
-    
-    // 12개 칸 생성 루프
+    const container = document.getElementById('gridContainer');
+
     for (let i = 1; i <= 12; i++) {
-        const win = document.createElement('div');
-        win.className = 'window';
-        win.innerHTML = `
-            <div class="photo-space">사진 공간 ${i}</div>
-            <div class="text-space">
-                <h3>나의 시 ${i}</h3>
-                <p>여기에 시 내용을 입력하세요. 클릭하면 창문이 아래로 길게 확장되면서 숨겨진 시 구절들이 모두 나타납니다. 다시 클릭하면 원래 크기로 부드럽게 접힙니다.</p>
+        const board = document.createElement('div');
+        board.className = 'glass-board';
+        
+        board.innerHTML = `
+            <div class="preview-text">창문 ${i}</div>
+            <div class="board-content">
+                <div class="content-image">
+                    사진이 들어갈 공간
+                </div>
+                <div class="content-text">
+                    <h3>유리창 너머의 시 ${i}</h3>
+                    <p>유리창을 클릭하면 이렇게 길게 게시판이 펼쳐집니다.<br><br>
+                    이곳에 긴 시나 산문을 적어 넣을 수 있습니다. 사진과 글이 함께 조화를 이루는 공간입니다.<br><br>
+                    다시 한 번 창문을 클릭하면 스르륵 접혀서 원래의 반투명한 유리창 모습으로 돌아갑니다.</p>
+                </div>
             </div>
-            <div class="toggle-btn">+</div>
         `;
-        
-        // 클릭 이벤트: 확장/축소 토글
-        win.onclick = function() {
+
+        // 클릭 시 접기/펴기 이벤트
+        board.addEventListener('click', function() {
+            // 다른 열려있는 창문들을 모두 닫고 싶다면 아래 코드를 유지하세요.
+            document.querySelectorAll('.glass-board').forEach(el => {
+                if(el !== this) el.classList.remove('expanded');
+            });
+
             this.classList.toggle('expanded');
-            const btn = this.querySelector('.toggle-btn');
-            btn.textContent = this.classList.contains('expanded') ? '-' : '+';
-        };
-        
-        grid.appendChild(win);
+        });
+
+        container.appendChild(board);
     }
 </script>
 
