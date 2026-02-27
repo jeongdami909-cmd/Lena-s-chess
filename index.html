@@ -19,7 +19,6 @@
             display: flex; flex-direction: column; align-items: center;
         }
 
-        /* 🌆 배경 사진 레이어 */
         .building-bg {
             position: fixed; top: 0; left: 0; width: 100%; height: 100%;
             background-size: cover; background-position: center;
@@ -27,7 +26,6 @@
             transition: background-image 0.5s ease;
         }
 
-        /* 🌑 배경 설정 메뉴 (작고 반투명) */
         .bg-admin {
             position: fixed; bottom: 20px; right: 20px;
             z-index: 1000; display: flex; gap: 5px;
@@ -39,10 +37,9 @@
             backdrop-filter: blur(5px); border: none; outline: none;
         }
 
-        /* 🪟 게시판 그리드 (ㅁ ㅁ 2열 구조) */
         .facade-grid {
             display: grid;
-            grid-template-columns: repeat(2, 40px); /* 40px 미니 네모 */
+            grid-template-columns: repeat(2, 40px);
             gap: 60px 120px;
             padding: 100px 20px; z-index: 10;
         }
@@ -55,7 +52,6 @@
             position: relative; cursor: pointer;
         }
 
-        /* 확장 시 게시판 (400x650) */
         .glass-board.expanded {
             position: fixed; top: 50%; left: 50%;
             transform: translate(-50%, -50%);
@@ -65,7 +61,6 @@
             box-shadow: 0 40px 100px rgba(0,0,0,0.5);
         }
 
-        /* 🔘 반투명 버튼 그룹 (고정, 수정, 삭제) */
         .btn-group {
             position: absolute; top: 15px; right: 15px;
             display: none; gap: 6px; z-index: 2100;
@@ -79,12 +74,10 @@
         }
         .mini-btn:hover { color: var(--indigo); background: rgba(0, 0, 0, 0.1); }
 
-        /* 📸 사진 입력 영역 */
         .photo-space { width: 100%; height: 100%; background: rgba(0,0,0,0.05); overflow: hidden; }
         .glass-board.expanded .photo-space { height: 260px; cursor: pointer; }
         .photo-space img { width: 100%; height: 100%; object-fit: cover; pointer-events: none; }
 
-        /* 📜 글 입력 영역 */
         .text-space { padding: 30px; display: none; }
         .glass-board.expanded .text-space { display: block; }
         .text-space h3 { margin: 0 0 10px 0; color: var(--indigo); outline: none; font-size: 1.25em; }
@@ -130,7 +123,7 @@
     const bgLayer = document.getElementById('bgLayer');
     const overlay = document.getElementById('overlay');
 
-    // 1. 배경 고정 저장 로직 개선 (Safer slice)
+    // 1. 배경 고정 로드 및 저장 로직 개선
     const savedBg = localStorage.getItem('win-bg-fixed');
     if (savedBg) bgLayer.style.backgroundImage = `url(${savedBg})`;
 
@@ -146,14 +139,14 @@
     function fixBg() {
         const bgImg = bgLayer.style.backgroundImage;
         if (bgImg && bgImg !== 'none') {
-            // 더 안전한 방식의 URL 추출
-            const url = bgImg.slice(5, -2); 
+            // 정규식보다 안전한 방식의 URL 추출
+            const url = bgImg.replace(/^url\(["']?/, '').replace(/["']?\)$/, '');
             localStorage.setItem('win-bg-fixed', url);
             alert('배경 사진이 고정되었습니다.');
         }
     }
 
-    // 2. 게시판 ID 관리 (ID 꼬임 방지)
+    // 2. 게시판 ID 목록 관리 (삭제 시 ID 꼬임 방지)
     let boardList = JSON.parse(localStorage.getItem('win-board-list')) || [1, 2, 3, 4, 5, 6, 7, 8];
     let nextId = parseInt(localStorage.getItem('win-next-id')) || 9;
 
@@ -168,12 +161,11 @@
         board.id = `board-${id}`;
         
         const saved = JSON.parse(localStorage.getItem(`win-data-${id}`)) || 
-                     { title: `Title ${id}`, text: '여기에 시를 입력하세요.', img: '' };
+                     { title: `Title ${id}`, text: '내용을 입력하세요.', img: '' };
 
         board.innerHTML = `
             <div class="btn-group">
                 <button class="mini-btn" onclick="saveData(${id}, event)">고정</button>
-                <button class="mini-btn" onclick="editContent(${id}, event)">수정</button>
                 <button class="mini-btn" onclick="deleteBoard(${id}, event)">삭제</button>
             </div>
             <input type="file" id="file-${id}" accept="image/*">
@@ -186,8 +178,14 @@
             </div>
         `;
 
+        // 단일 확장 로직 적용
         board.addEventListener('click', function(e) {
-            if (!this.classList.contains('expanded')) {
+            const opened = document.querySelector('.glass-board.expanded');
+            if (opened && opened !== this) {
+                opened.classList.remove('expanded');
+            }
+
+            if (!this.classList.contains('expanded') && e.target.tagName !== 'BUTTON') {
                 this.classList.add('expanded');
                 overlay.classList.add('active');
             }
@@ -216,26 +214,21 @@
         }
     }
 
-    // 더 안전한 방식의 이미지 저장 로직
+    // 3. 안전한 이미지 저장 로직
     function saveData(id, e) {
         e.stopPropagation();
         const imgEl = document.getElementById(`img-${id}`);
         const title = document.getElementById(`title-${id}`).innerText;
         const text = document.getElementById(`text-${id}`).innerText;
         
-        // src가 data:로 시작할 때만 저장
+        // src가 실제 데이터일 때만 저장하도록 검증
         const img = imgEl.src && imgEl.src.startsWith('data:') ? imgEl.src : '';
 
         localStorage.setItem(`win-data-${id}`, JSON.stringify({ title, text, img }));
         alert(`고정되었습니다.`);
     }
 
-    function editContent(id, e) {
-        e.stopPropagation();
-        document.getElementById(`title-${id}`).focus();
-    }
-
-    // 삭제 로직 개선 (DOM 제거 + 리스트 업데이트)
+    // 4. 삭제 로직 개선 (리스트 업데이트 포함)
     function deleteBoard(id, e) {
         e.stopPropagation();
         if(confirm('이 게시판을 삭제하시겠습니까?')) {
@@ -243,7 +236,7 @@
             const board = document.getElementById(`board-${id}`);
             if (board) board.remove();
 
-            // 리스트에서 해당 ID 제거
+            // ID 목록에서 제거 후 저장
             boardList = boardList.filter(item => item !== id);
             localStorage.setItem('win-board-list', JSON.stringify(boardList));
 
@@ -261,7 +254,7 @@
         createBoard(id2);
     }
 
-    // UX 개선: ESC 키로 닫기
+    // 5. ESC 키로 닫기 지원
     document.addEventListener('keydown', function(e) {
         if (e.key === "Escape") {
             const expanded = document.querySelector('.glass-board.expanded');
