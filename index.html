@@ -3,14 +3,14 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>반투명 건물 유리창 게시판</title>
+    <title>글래스모피즘 게시판: 시와 사진</title>
     <style>
-        /* 기본 배경 (건물 사진을 반투명하게 덮어줄 어두운 배경) */
+        /* 기본 배경: 건물 사진을 반투명하게 덮어줄 어두운 배경 */
         body {
             margin: 0;
             padding: 50px 20px;
             background-color: #1a1a24; /* 어두운 인디고 느낌의 배경 */
-            font-family: 'Pretendard', sans-serif;
+            font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
             min-height: 100vh;
             display: flex;
             justify-content: center;
@@ -26,28 +26,28 @@
             background-image: url('5575.jpg'); /* 여기에 사진 파일이 연결됩니다 */
             background-size: cover;
             background-position: center;
-            opacity: 0.3; /* 0.0 ~ 1.0 사이로 건물 사진의 투명도를 조절하세요 */
+            opacity: 0.3; /* 사진의 투명도 */
             z-index: -1;
             filter: grayscale(30%); /* 사진을 살짝 흑백 톤으로 눌러줍니다 */
         }
 
         /* 12개 게시판을 담는 그리드 */
-        .board-grid {
+        .facade-grid {
             display: grid;
-            grid-template-columns: repeat(4, 1fr);
-            gap: 20px;
+            grid-template-columns: repeat(4, 1fr); /* 4열 구성 */
+            gap: 25px;
             max-width: 1100px;
             width: 100%;
             z-index: 1;
         }
 
-        /* 평소 상태: 투명한 유리창 느낌 */
+        /* 개별 유리 게시판 스타일 (평소 상태) */
         .glass-board {
             background: rgba(255, 255, 255, 0.1); /* 투명한 흰색 */
-            backdrop-filter: blur(10px); /* 뒤쪽 건물을 흐리게 (유리 효과) */
+            backdrop-filter: blur(10px); /* 뒤쪽 배경을 흐리게 (유리 효과) */
             border: 1px solid rgba(63, 81, 181, 0.5); /* 은은한 인디고 창살 */
             border-radius: 4px;
-            height: 200px; /* 접혀있을 때 높이 */
+            height: 280px; /* 접혀있을 때 높이 */
             overflow: hidden;
             cursor: pointer;
             transition: all 0.6s cubic-bezier(0.25, 1, 0.5, 1);
@@ -55,88 +55,147 @@
             box-shadow: inset 0 0 20px rgba(255,255,255,0.05), 0 4px 10px rgba(0,0,0,0.2);
         }
 
-        /* 클릭 시 상태: 길게 펼쳐진 게시판 */
+        /* 클릭해서 확장(긴 창)되었을 때 */
         .glass-board.expanded {
-            height: 600px; /* 펼쳐졌을 때 높이 */
-            background: rgba(255, 255, 255, 0.95); /* 글이 잘 보이도록 불투명해짐 */
+            height: 650px; /* 펼쳐졌을 때 높이 */
+            background: rgba(255, 255, 255, 0.98); /* 글이 잘 보이도록 불투명해짐 */
             backdrop-filter: blur(0px);
-            border: 2px solid rgba(63, 81, 181, 1); /* 뚜렷한 인디고 창살 */
+            border: 2px solid #3f51b5; /* 뚜렷한 인디고 창살 */
             grid-row: span 2; /* 아래로 길게 확장 */
             z-index: 10;
             box-shadow: 0 15px 35px rgba(0,0,0,0.4);
         }
 
-        /* 접혀있을 때 보이는 텍스트 */
-        .preview-text {
-            position: absolute;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            color: rgba(255, 255, 255, 0.8);
-            font-size: 0.9em;
-            letter-spacing: 2px;
-            transition: opacity 0.3s;
-        }
-
-        /* 펼쳐졌을 때 숨김 */
-        .glass-board.expanded .preview-text {
-            opacity: 0;
-            pointer-events: none;
-        }
-
         /* 게시판 실제 내용 (사진 + 시) */
         .board-content {
             padding: 20px;
-            opacity: 0;
-            transform: translateY(20px);
-            transition: all 0.5s ease;
-            transition-delay: 0.2s; /* 창이 펴진 후 내용이 서서히 나타남 */
+            display: flex;
+            flex-direction: column;
             height: 100%;
             box-sizing: border-box;
-            display: none;
+            opacity: 0.8; /* 접혔을 때 투명도 */
+            transition: opacity 0.4s ease;
         }
 
-        /* 창이 펼쳐지면 내용 표시 */
+        /* 펼쳐졌을 때 내용 투명도 */
         .glass-board.expanded .board-content {
             opacity: 1;
-            transform: translateY(0);
-            display: block;
         }
 
-        /* 내부 사진 영역 */
-        .content-image {
+        /* 🖼️ 사진 영역 */
+        .photo-space {
             width: 100%;
-            height: 200px;
-            background-color: #e0e0e0;
-            border-radius: 4px;
-            margin-bottom: 20px;
+            height: 180px; /* 사진 영역 높이 */
+            background: #ececec; /* 사진이 없을 때 기본 회색 */
             display: flex;
             align-items: center;
             justify-content: center;
+            border-radius: 2px;
+            margin-bottom: 20px;
+            border: 1px solid rgba(0,0,0,0.05);
             color: #888;
+            font-size: 0.9em;
             overflow: hidden;
         }
 
-        .content-image img {
+        .photo-space img {
             width: 100%;
             height: 100%;
             object-fit: cover;
         }
 
-        /* 내부 텍스트 영역 */
-        .content-text h3 {
+        /* 📜 시/글 영역 (긴 글 스크롤 가능) */
+        .text-space {
+            color: #333;
+            overflow-y: hidden; /* 기본 상태에서는 스크롤 없음 */
+            flex-grow: 1; /* 남은 공간 모두 차지 */
+        }
+
+        /* 확장 시 스크롤 활성화 */
+        .glass-board.expanded .text-space {
+            overflow-y: auto; /* 내용이 길면 세로 스크롤 생성 */
+            padding-right: 10px; /* 스크롤바와 텍스트 사이 간격 */
+        }
+
+        /* 스크롤바 스타일 커스텀 */
+        .text-space::-webkit-scrollbar {
+            width: 6px;
+        }
+        .text-space::-webkit-scrollbar-thumb {
+            background-color: rgba(63, 81, 181, 0.4);
+            border-radius: 3px;
+        }
+        .text-space::-webkit-scrollbar-track {
+            background-color: transparent;
+        }
+
+        .text-space h3 {
             margin: 0 0 10px 0;
+            font-size: 1.1em;
             color: #3f51b5;
         }
 
-        .content-text p {
-            color: #444;
+        .text-space p {
+            margin: 0;
             line-height: 1.8;
             font-size: 0.95em;
+            white-space: pre-wrap; /* 줄바꿈 유지 */
+            
+            /* 기본 상태에서는 글이 잘리도록 설정 */
+            display: -webkit-box;
+            -webkit-line-clamp: 3; /* 접혔을 때 세 줄만 표시 */
+            -webkit-box-orient: vertical;
+            overflow: hidden;
         }
-        
+
+        /* 확장 시 글이 모두 보이도록 설정 */
+        .glass-board.expanded .text-space p {
+            display: block;
+            -webkit-line-clamp: unset; /* 줄 제한 해제 */
+            overflow: visible;
+        }
+
+        /* 🛠️ 수정/삭제 버튼 영역 */
+        .action-buttons {
+            display: flex;
+            justify-content: flex-end;
+            gap: 10px;
+            margin-top: 20px;
+            opacity: 0; /* 기본 상태에서는 숨김 */
+            transition: opacity 0.3s;
+        }
+
+        /* 펼쳐졌을 때 버튼 표시 */
+        .glass-board.expanded .action-buttons {
+            opacity: 1;
+        }
+
+        .action-buttons button {
+            background: transparent;
+            border: 1px solid rgba(63, 81, 181, 0.6);
+            color: #3f51b5;
+            padding: 6px 14px;
+            border-radius: 20px;
+            cursor: pointer;
+            font-size: 0.85em;
+            transition: all 0.2s;
+        }
+
+        .action-buttons button:hover {
+            background-color: rgba(63, 81, 181, 0.1);
+        }
+
+        .delete-btn {
+            border-color: #e57373 !important;
+            color: #e57373 !important;
+        }
+        .delete-btn:hover {
+            background-color: rgba(229, 115, 115, 0.1) !important;
+        }
+
+        /* 반응형: 화면이 작아지면 2열로 변경 */
         @media (max-width: 800px) {
-            .board-grid { grid-template-columns: repeat(2, 1fr); }
+            .facade-grid { grid-template-columns: repeat(2, 1fr); }
         }
     </style>
 </head>
@@ -144,42 +203,65 @@
 
 <div class="building-bg"></div>
 
-<div class="board-grid" id="gridContainer">
+<div class="facade-grid">
     </div>
 
 <script>
-    const container = document.getElementById('gridContainer');
+    const grid = document.querySelector('.facade-grid');
+    
+    // 긴 dummy 시 내용
+    const longPoem = `나의 시는 어디에 있는가\n\n고요한 밤의 소리,\n별이 빛나는 너머로\n숨 쉬는 모든 것들의 이야기.\n\n때로는 거친 파도처럼,\n때로는 은은한 달빛처럼\n마음의 창을 두드리는\n그리움의 조각들.\n\n여기에 그 조각들을\n하나하나 모아놓았습니다.\n\n클릭하면 열리는 이 유리창처럼,\n여러분의 마음도\n조금은 열릴 수 있기를...`;
 
+    // 12개 칸 생성 루프
     for (let i = 1; i <= 12; i++) {
         const board = document.createElement('div');
         board.className = 'glass-board';
         
         board.innerHTML = `
-            <div class="preview-text">창문 ${i}</div>
             <div class="board-content">
-                <div class="content-image">
-                    사진이 들어갈 공간
+                <div class="photo-space">
+                    <span>사진 들어갈 공간</span>
                 </div>
-                <div class="content-text">
+                <div class="text-space">
                     <h3>유리창 너머의 시 ${i}</h3>
-                    <p>유리창을 클릭하면 이렇게 길게 게시판이 펼쳐집니다.<br><br>
-                    이곳에 긴 시나 산문을 적어 넣을 수 있습니다. 사진과 글이 함께 조화를 이루는 공간입니다.<br><br>
-                    다시 한 번 창문을 클릭하면 스르륵 접혀서 원래의 반투명한 유리창 모습으로 돌아갑니다.</p>
+                    <p>${longPoem}</p>
+                </div>
+                <div class="action-buttons">
+                    <button class="modify-btn">수정</button>
+                    <button class="delete-btn">삭제</button>
                 </div>
             </div>
         `;
-
-        // 클릭 시 접기/펴기 이벤트
-        board.addEventListener('click', function() {
-            // 다른 열려있는 창문들을 모두 닫고 싶다면 아래 코드를 유지하세요.
-            document.querySelectorAll('.glass-board').forEach(el => {
-                if(el !== this) el.classList.remove('expanded');
-            });
-
-            this.classList.toggle('expanded');
-        });
-
-        container.appendChild(board);
+        
+        // 클릭 이벤트: 확장/축소 토글 (버튼 클릭 제외)
+        board.onclick = function(event) {
+            if (!event.target.matches('button')) {
+                // 다른 열려있는 창문들을 모두 닫고 싶다면 아래 코드를 유지하세요.
+                document.querySelectorAll('.glass-board').forEach(el => {
+                    if(el !== this) el.classList.remove('expanded');
+                });
+                
+                this.classList.toggle('expanded');
+            }
+        };
+        
+        // 삭제 버튼 이벤트
+        const deleteBtn = board.querySelector('.delete-btn');
+        deleteBtn.onclick = function(event) {
+            event.stopPropagation(); // 부모 클릭 이벤트 방지
+            if(confirm(`'나의 시 ${i}' 게시글을 삭제하시겠습니까?`)) {
+                board.remove();
+            }
+        };
+        
+        // 수정 버튼 이벤트
+        const modifyBtn = board.querySelector('.modify-btn');
+        modifyBtn.onclick = function(event) {
+            event.stopPropagation(); // 부모 클릭 이벤트 방지
+            alert(`'나의 시 ${i}' 수정 기능을 구현해 보세요!`);
+        };
+        
+        grid.appendChild(board);
     }
 </script>
 
