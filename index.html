@@ -21,10 +21,14 @@
             -webkit-tap-highlight-color: transparent;
         }
         @media (min-width: 500px) { .square { font-size: 50px; } }
-        .light { background-color: #f0d9b5; }
-        .dark { background-color: #8b5a2b; color: #fcf9f2; }
+        /* 따뜻한 갈색 테마 */
+        .light { background-color: #fceecf; } /* 부드러운 노란색 */
+        .dark { background-color: #b58863; color: #ffffff; } /* 중간 갈색 */
         .selected { background-color: #7b9a58 !important; }
         .pending { background-color: #e5c158 !important; }
+        /* 기물 색상 구분 명확하게 */
+        .black-piece { color: #000000; }
+        .white-piece { color: #ffffff; }
         #controls { margin-top: 25px; width: 95vw; max-width: 500px; display: flex; gap: 10px; }
         button { flex: 1; padding: 15px 0; font-size: 18px; font-weight: bold; border: none; border-radius: 12px; color: white; }
         #btn-confirm { background-color: #4CAF50; display: none; }
@@ -75,7 +79,10 @@
                         if (selected && selected.r === r && selected.c === c) square.classList.add('selected');
                         if (pendingMove && pendingMove.toR === r && pendingMove.toC === c) square.classList.add('pending');
                         const piece = boardState[r][c];
-                        if (piece) square.textContent = pieces[piece];
+                        if (piece) {
+                            square.textContent = pieces[piece];
+                            square.classList.add(isWhite(piece) ? 'white-piece' : 'black-piece');
+                        }
                         square.onclick = () => handleSquareClick(r, c);
                         boardElement.appendChild(square);
                     }
