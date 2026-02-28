@@ -3,77 +3,38 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>모바일 체스 앱 - v4</title>
+    <title>AI 체스 연습장 - v5</title>
     <style>
         body {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            font-family: -apple-system, sans-serif;
-            background-color: #fcf9f2; /* 따뜻한 배경색 */
-            margin: 0;
-            padding: 20px 10px;
-            touch-action: manipulation;
+            display: flex; flex-direction: column; align-items: center;
+            font-family: -apple-system, sans-serif; background-color: #fcf9f2;
+            margin: 0; padding: 20px 10px; touch-action: manipulation;
         }
-        /* 체스판: 화면 너비에 맞춰 유동적으로 크기 조절 */
         #board {
-            display: grid;
-            grid-template-columns: repeat(8, 1fr);
-            grid-template-rows: repeat(8, 1fr);
-            width: 95vw;
-            max-width: 500px;
-            height: 95vw;
-            max-height: 500px;
-            border: 5px solid #3d2b1f;
-            box-shadow: 0 10px 25px rgba(0,0,0,0.2);
+            display: grid; grid-template-columns: repeat(8, 1fr); grid-template-rows: repeat(8, 1fr);
+            width: 95vw; max-width: 500px; height: 95vw; max-height: 500px;
+            border: 5px solid #3d2b1f; box-shadow: 0 10px 25px rgba(0,0,0,0.2);
         }
         .square {
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            font-size: calc(95vw / 10); /* 기물 크기 자동 조절 */
-            cursor: pointer;
-            user-select: none;
+            display: flex; justify-content: center; align-items: center;
+            font-size: calc(95vw / 10); cursor: pointer; user-select: none;
             -webkit-tap-highlight-color: transparent;
         }
         @media (min-width: 500px) { .square { font-size: 50px; } }
-
-        /* 따뜻한 갈색 테마 */
         .light { background-color: #f0d9b5; }
         .dark { background-color: #8b5a2b; color: #fcf9f2; }
         .selected { background-color: #7b9a58 !important; }
         .pending { background-color: #e5c158 !important; }
-
-        #controls {
-            margin-top: 25px;
-            width: 95vw;
-            max-width: 500px;
-            display: flex;
-            gap: 10px;
-        }
-        button {
-            flex: 1;
-            padding: 15px 0;
-            font-size: 18px;
-            font-weight: bold;
-            border: none;
-            border-radius: 12px;
-            color: white;
-            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
-        }
+        #controls { margin-top: 25px; width: 95vw; max-width: 500px; display: flex; gap: 10px; }
+        button { flex: 1; padding: 15px 0; font-size: 18px; font-weight: bold; border: none; border-radius: 12px; color: white; }
         #btn-confirm { background-color: #4CAF50; display: none; }
         #btn-cancel { background-color: #f44336; display: none; }
-        #status {
-            margin-bottom: 15px;
-            font-size: 20px;
-            font-weight: bold;
-            color: #3d2b1f;
-        }
+        #status { margin-bottom: 15px; font-size: 20px; font-weight: bold; color: #3d2b1f; }
     </style>
 </head>
 <body>
 
-    <div id="status">백(White)의 차례</div>
+    <div id="status">당신의 차례 (백)</div>
     <div id="board"></div>
 
     <div id="controls">
@@ -82,13 +43,10 @@
     </div>
 
     <script>
-        // 안전하게 페이지 로드가 끝난 후 실행되도록 설정
         window.onload = function() {
             const boardElement = document.getElementById('board');
-            const pieces = {
-                r: '♜', n: '♞', b: '♝', q: '♛', k: '♚', p: '♟',
-                R: '♖', N: '♘', B: '♗', Q: '♕', K: '♔', P: '♙'
-            };
+            const pieces = { r:'♜', n:'♞', b:'♝', q:'♛', k:'♚', p:'♟', R:'♖', N:'♘', B:'♗', Q:'♕', K:'♔', P:'♙' };
+            const pieceValues = { p: 10, n: 30, b: 30, r: 50, q: 90, k: 900 };
 
             let boardState = [
                 ['r', 'n', 'b', 'q', 'k', 'b', 'n', 'r'],
@@ -116,97 +74,76 @@
                         square.className = `square ${(r + c) % 2 === 0 ? 'light' : 'dark'}`;
                         if (selected && selected.r === r && selected.c === c) square.classList.add('selected');
                         if (pendingMove && pendingMove.toR === r && pendingMove.toC === c) square.classList.add('pending');
-
                         const piece = boardState[r][c];
                         if (piece) square.textContent = pieces[piece];
-
                         square.onclick = () => handleSquareClick(r, c);
                         boardElement.appendChild(square);
                     }
                 }
             }
 
-            // ... (isValidMove, confirmMove, cancelMove 등 로직은 동일하게 유지) ...
-            // [지면 관계상 핵심 로직 생략되지 않도록 전체 포함]
-
             function handleSquareClick(r, c) {
-                if (pendingMove) return;
+                if (turn === 'Black' || pendingMove) return;
                 const piece = boardState[r][c];
-                const isMyPiece = (turn === 'White' && isWhite(piece)) || (turn === 'Black' && isBlack(piece));
-
                 if (selected) {
-                    if (selected.r === r && selected.c === c) {
-                        selected = null;
-                        renderBoard();
-                    } else if (isMyPiece) {
-                        selected = {r, c};
-                        renderBoard();
-                    } else {
-                        if (isValidMove(selected.r, selected.c, r, c)) {
-                            pendingMove = {
-                                fromR: selected.r, fromC: selected.c,
-                                toR: r, toC: c,
-                                piece: boardState[selected.r][selected.c],
-                                captured: boardState[r][c]
-                            };
-                            boardState[r][c] = pendingMove.piece;
-                            boardState[selected.r][selected.c] = '';
-                            selected = null;
-                            document.getElementById('btn-confirm').style.display = 'block';
-                            document.getElementById('btn-cancel').style.display = 'block';
-                            renderBoard();
-                        }
+                    if (selected.r === r && selected.c === c) { selected = null; renderBoard(); }
+                    else if (isWhite(piece)) { selected = {r, c}; renderBoard(); }
+                    else if (isValidMove(selected.r, selected.c, r, c)) {
+                        applyTemporaryMove(selected.r, selected.c, r, c);
                     }
-                } else if (isMyPiece) {
-                    selected = {r, c};
-                    renderBoard();
-                }
+                } else if (isWhite(piece)) { selected = {r, c}; renderBoard(); }
             }
 
-            function isValidMove(fr, fc, tr, tc) {
-                const piece = boardState[fr][fc];
-                const target = boardState[tr][tc];
-                const dr = tr - fr;
-                const dc = tc - fc;
-                const absDr = Math.abs(dr);
-                const absDc = Math.abs(dc);
-                if (target && ((isWhite(piece) && isWhite(target)) || (isBlack(piece) && isBlack(target)))) return false;
-                
-                const isPathClear = () => {
-                    let stepR = dr === 0 ? 0 : dr / absDr;
-                    let stepC = dc === 0 ? 0 : dc / absDc;
-                    let curR = fr + stepR;
-                    let curC = fc + stepC;
-                    while (curR !== tr || curC !== tc) {
-                        if (boardState[curR][curC] !== '') return false;
-                        curR += stepR; curC += stepC;
-                    }
-                    return true;
-                };
+            function applyTemporaryMove(fr, fc, tr, tc) {
+                pendingMove = { fromR: fr, fromC: fc, toR: tr, toC: tc, piece: boardState[fr][fc], captured: boardState[tr][tc] };
+                boardState[tr][tc] = pendingMove.piece;
+                boardState[fr][fc] = '';
+                selected = null;
+                document.getElementById('btn-confirm').style.display = 'block';
+                document.getElementById('btn-cancel').style.display = 'block';
+                renderBoard();
+            }
 
-                const type = piece.toLowerCase();
-                if (type === 'p') {
-                    const dir = isWhite(piece) ? -1 : 1;
-                    if (dc === 0 && dr === dir && target === '') return true;
-                    if (dc === 0 && dr === dir * 2 && (fr === 6 || fr === 1) && target === '' && boardState[fr+dir][fc] === '') return true;
-                    if (absDc === 1 && dr === dir && target !== '') return true;
-                    return false;
-                }
-                if (type === 'r') return (dr === 0 || dc === 0) && isPathClear();
-                if (type === 'b') return absDr === absDc && isPathClear();
-                if (type === 'q') return (dr === 0 || dc === 0 || absDr === absDc) && isPathClear();
-                if (type === 'k') return absDr <= 1 && absDc <= 1;
-                if (type === 'n') return (absDr === 2 && absDc === 1) || (absDr === 1 && absDc === 2);
-                return false;
+            // 🤖 AI의 뇌 (가장 가치 높은 기물 잡기)
+            function makeAIMove() {
+                document.getElementById('status').innerText = "AI가 생각 중...";
+                setTimeout(() => {
+                    let allMoves = [];
+                    for (let r = 0; r < 8; r++) {
+                        for (let c = 0; c < 8; c++) {
+                            if (isBlack(boardState[r][c])) {
+                                for (let tr = 0; tr < 8; tr++) {
+                                    for (let tc = 0; tc < 8; tc++) {
+                                        if (isValidMove(r, c, tr, tc)) {
+                                            let score = 0;
+                                            let target = boardState[tr][tc];
+                                            if (target) score = pieceValues[target.toLowerCase()];
+                                            allMoves.push({fr: r, fc: c, tr: tr, tc: tc, score: score});
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                    if (allMoves.length > 0) {
+                        allMoves.sort((a, b) => b.score - a.score || Math.random() - 0.5);
+                        const bestMove = allMoves[0];
+                        boardState[bestMove.tr][bestMove.tc] = boardState[bestMove.fr][bestMove.fc];
+                        boardState[bestMove.fr][bestMove.fc] = '';
+                        turn = 'White';
+                        document.getElementById('status').innerText = "당신의 차례 (백)";
+                        renderBoard();
+                    }
+                }, 600);
             }
 
             window.confirmMove = function() {
                 pendingMove = null;
-                turn = turn === 'White' ? 'Black' : 'White';
-                document.getElementById('status').innerText = `${turn === 'White' ? '백(White)' : '흑(Black)'}의 차례`;
+                turn = 'Black';
                 document.getElementById('btn-confirm').style.display = 'none';
                 document.getElementById('btn-cancel').style.display = 'none';
                 renderBoard();
+                makeAIMove(); // 턴 종료 시 AI 호출!
             }
 
             window.cancelMove = function() {
@@ -218,6 +155,37 @@
                 renderBoard();
             }
 
+            function isValidMove(fr, fc, tr, tc) {
+                const piece = boardState[fr][fc];
+                const target = boardState[tr][tc];
+                const dr = tr - fr; const dc = tc - fc;
+                const absDr = Math.abs(dr); const absDc = Math.abs(dc);
+                if (target && ((isWhite(piece) && isWhite(target)) || (isBlack(piece) && isBlack(target)))) return false;
+                const isPathClear = () => {
+                    let stepR = dr === 0 ? 0 : dr / absDr;
+                    let stepC = dc === 0 ? 0 : dc / absDc;
+                    let curR = fr + stepR; let curC = fc + stepC;
+                    while (curR !== tr || curC !== tc) {
+                        if (boardState[curR][curC] !== '') return false;
+                        curR += stepR; curC += stepC;
+                    }
+                    return true;
+                };
+                const type = piece.toLowerCase();
+                if (type === 'p') {
+                    const dir = isWhite(piece) ? -1 : 1;
+                    if (dc === 0 && dr === dir && target === '') return true;
+                    if (dc === 0 && dr === dir * 2 && (fr === 6 || fr === 1) && target === '' && boardState[fr+dir][fc] === '') return true;
+                    if (Math.abs(dc) === 1 && dr === dir && target !== '') return true;
+                    return false;
+                }
+                if (type === 'r') return (dr === 0 || dc === 0) && isPathClear();
+                if (type === 'b') return absDr === absDc && isPathClear();
+                if (type === 'q') return (dr === 0 || dc === 0 || absDr === absDc) && isPathClear();
+                if (type === 'k') return absDr <= 1 && absDc <= 1;
+                if (type === 'n') return (absDr === 2 && absDc === 1) || (absDr === 1 && absDc === 2);
+                return false;
+            }
             renderBoard();
         };
     </script>
