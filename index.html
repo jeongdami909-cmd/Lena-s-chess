@@ -3,31 +3,22 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>프로 AI 체스 - v42 Elite Analytics</title>
+    <title>프로 AI 체스 - v43 Compact</title>
     <style>
         * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
         html, body { height: 100%; margin: 0; padding: 0; overflow: hidden; background-color: #f4f1ea; }
-        body { display: flex; flex-direction: column; align-items: center; font-family: -apple-system, sans-serif; padding: 10px; }
+        body { display: flex; flex-direction: column; align-items: center; font-family: -apple-system, sans-serif; padding: 5px; }
         .app-wrapper { width: 100%; max-width: 400px; height: 100%; display: flex; flex-direction: column; justify-content: space-between; }
         
-        #ui-header { height: 75px; display: flex; flex-direction: column; justify-content: center; align-items: center; text-align: center; background: white; border-radius: 12px; margin-bottom: 5px; box-shadow: 0 2px 5px rgba(0,0,0,0.05); }
-        #status { font-size: 15px; font-weight: 800; color: #2c3e50; }
-        #last-move { font-size: 13px; color: #7f8c8d; margin-top: 2px; font-weight: 600; }
-        #ai-loader { visibility: hidden; width: 80%; height: 3px; background: #eee; overflow: hidden; border-radius: 2px; margin-top: 5px; }
+        /* 헤더 축소 */
+        #ui-header { height: 60px; display: flex; flex-direction: column; justify-content: center; align-items: center; text-align: center; background: white; border-radius: 10px; margin-bottom: 3px; box-shadow: 0 1px 3px rgba(0,0,0,0.05); }
+        #status { font-size: 14px; font-weight: 800; color: #2c3e50; }
+        #last-move { font-size: 11px; color: #7f8c8d; font-weight: 600; }
+        #ai-loader { visibility: hidden; width: 70%; height: 2px; background: #eee; overflow: hidden; margin-top: 3px; }
         .thinking-bar { width: 30%; height: 100%; background: #3498db; animation: move 1s infinite linear; }
         @keyframes move { from { margin-left: -30%; } to { margin-left: 100%; } }
 
-        #board { 
-            display: grid; 
-            grid-template-columns: repeat(8, 1fr); 
-            grid-template-rows: repeat(8, 1fr); 
-            width: 100%; 
-            aspect-ratio: 1 / 1; 
-            border: 4px solid #3d2b1f; 
-            background-color: #3d2b1f; 
-            position: relative;
-            will-change: contents;
-        }
+        #board { display: grid; grid-template-columns: repeat(8, 1fr); grid-template-rows: repeat(8, 1fr); width: 100%; aspect-ratio: 1 / 1; border: 4px solid #3d2b1f; background-color: #3d2b1f; position: relative; will-change: contents; }
         .square { display: flex; justify-content: center; align-items: center; font-size: 8.5vw; cursor: pointer; position: relative; backface-visibility: hidden; }
         @media (min-width: 400px) { .square { font-size: 38px; } }
         
@@ -40,42 +31,41 @@
         .black-piece { color: #000; filter: drop-shadow(0 1px 1px #fff); }
         .white-piece { color: #fff; filter: drop-shadow(0 2px 3px rgba(0,0,0,0.5)); }
         
-        /* 캡처 영역 디자인 개선 */
-        .captured-area { width: 100%; min-height: 32px; display: flex; align-items: center; gap: 4px; padding: 0 10px; border-radius: 6px; font-size: 13px; font-weight: bold; border: 1px solid #ddd; }
-        #black-captured { background: #f8d7da; color: #721c24; } /* 상대가 가져간 거 (위험) */
-        #white-captured { background: #d4edda; color: #155724; } /* 내가 가져온 거 (유리) */
+        /* 캡처 영역 높이 축소 */
+        .captured-area { width: 100%; height: 28px; display: flex; align-items: center; gap: 2px; padding: 0 8px; border-radius: 5px; font-size: 11px; font-weight: bold; border: 1px solid #ddd; overflow-x: auto; white-space: nowrap; }
+        #black-captured { background: #f8d7da; color: #721c24; margin-bottom: 2px; }
+        #white-captured { background: #d4edda; color: #155724; margin-top: 2px; }
         
-        #stats-panel { background: #fff; border-radius: 10px; padding: 8px; font-size: 11px; color: #34495e; box-shadow: 0 2px 4px rgba(0,0,0,0.05); }
-        .stats-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
-        .stats-row { display: flex; justify-content: space-between; border-bottom: 1px solid #f1f2f6; padding: 2px 0; }
+        /* 통계 패널 슬림화 */
+        #stats-panel { background: #fff; border-radius: 8px; padding: 4px 8px; font-size: 10px; color: #34495e; box-shadow: 0 1px 3px rgba(0,0,0,0.05); margin: 2px 0; }
+        .stats-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 5px; }
+        .stats-row { display: flex; justify-content: space-between; border-bottom: 1px solid #f1f2f6; padding: 1px 0; }
         
-        .ui-row { display: flex; gap: 6px; width: 100%; margin-bottom: 4px; }
-        button { flex: 1; padding: 12px 0; font-size: 13px; font-weight: bold; border: none; border-radius: 8px; cursor: pointer; color: white; transition: 0.1s; }
+        .ui-row { display: flex; gap: 4px; width: 100%; margin-bottom: 2px; }
+        button { flex: 1; padding: 10px 0; font-size: 12px; font-weight: bold; border: none; border-radius: 6px; cursor: pointer; color: white; transition: 0.1s; }
+        button:active { filter: brightness(0.9); transform: scale(0.98); }
         #btn-confirm { background-color: #27ae60; display: none; }
         #btn-cancel { background-color: #e74c3c; display: none; }
         #btn-reset { background-color: #7f8c8d; }
         .castle-btn { background-color: #8e44ad; display: none; }
 
-        #promotion-overlay { display: none; position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); z-index: 100; justify-content: center; align-items: center; gap: 10px; }
-        .promo-choice { width: 60px; height: 60px; background: #fff; border-radius: 10px; display: flex; justify-content: center; align-items: center; font-size: 38px; cursor: pointer; }
+        #promotion-overlay { display: none; position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); z-index: 100; justify-content: center; align-items: center; gap: 8px; }
+        .promo-choice { width: 50px; height: 50px; background: #fff; border-radius: 8px; display: flex; justify-content: center; align-items: center; font-size: 32px; cursor: pointer; }
     </style>
 </head>
 <body>
     <div class="app-wrapper">
         <div id="ui-header">
-            <div id="status">Elite AI Edition</div>
+            <div id="status">Elite AI v43</div>
             <div id="last-move">준비 완료</div>
             <div id="ai-loader"><div class="thinking-bar"></div></div>
         </div>
 
         <div class="captured-area" id="black-captured">상대가 가져감: </div>
-        
         <div id="board"><div id="promotion-overlay"></div></div>
-        
         <div class="captured-area" id="white-captured">내가 가져옴: </div>
         
         <div id="stats-panel">
-            <div style="font-weight: 800; text-align: center; margin-bottom: 5px; color: #7f8c8d;">기물별 총 이동 거리 (칸)</div>
             <div class="stats-grid">
                 <div id="stats-white"></div>
                 <div id="stats-black"></div>
@@ -83,8 +73,8 @@
         </div>
 
         <div class="ui-row">
-            <button id="btn-castle-king" class="castle-btn" onclick="tryCastle('king')">킹사이드 캐슬링 🏰</button>
-            <button id="btn-castle-queen" class="castle-btn" onclick="tryCastle('queen')">퀸사이드 캐슬링 🏰</button>
+            <button id="btn-castle-king" class="castle-btn" onclick="tryCastle('king')">킹사이드 캐슬 🏰</button>
+            <button id="btn-castle-queen" class="castle-btn" onclick="tryCastle('queen')">퀸사이드 캐슬 🏰</button>
         </div>
 
         <div class="ui-row">
@@ -95,7 +85,7 @@
     </div>
 
     <script>
-        // --- 코어 로직 및 AI (전 버전과 동일하게 유지) ---
+        // --- AI Worker (지능 및 다중 기물 활용 강화) ---
         const workerCode = `
             self.onmessage = function(e) {
                 const { boardState, depth } = e.data;
@@ -114,7 +104,8 @@
                         let val = pVals[t] + (pst[t] ? (p===t ? pst[t][r*8+c] : pst[t][(7-r)*8+c]) : 0);
                         total += (p === t) ? val : -val;
                     }
-                    total += (bMoves - wMoves) * 10; return total;
+                    total += (bMoves - wMoves) * 15; // 다중 기물 활용을 위한 가동성 비중 강화
+                    return total;
                 }
                 function getValidMoves(s, isWhite) {
                     const moves = [];
@@ -161,22 +152,14 @@
         const ai = new Worker(URL.createObjectURL(new Blob([workerCode], { type: 'application/javascript' })));
         const getCoord = (r, c) => String.fromCharCode(97 + c) + (8 - r);
 
-        function calcDist(fr, fc, tr, tc, piece) {
-            if (piece.toLowerCase() === 'n') return 3;
-            return Math.max(Math.abs(tr - fr), Math.abs(tc - fc));
-        }
-
-        function saveGame() {
-            localStorage.setItem('chess_v42_save', JSON.stringify({ boardState, capturedWhite, capturedBlack, turn, movedStatus, moveStats }));
-        }
+        function calcDist(fr, fc, tr, tc, piece) { if (piece.toLowerCase() === 'n') return 3; return Math.max(Math.abs(tr - fr), Math.abs(tc - fc)); }
+        function saveGame() { localStorage.setItem('chess_v43_save', JSON.stringify({ boardState, capturedWhite, capturedBlack, turn, movedStatus, moveStats })); }
 
         function loadGame() {
-            const saved = localStorage.getItem('chess_v42_save');
+            const saved = localStorage.getItem('chess_v43_save');
             if (saved) {
-                const d = JSON.parse(saved);
-                boardState = d.boardState; capturedWhite = d.capturedWhite;
-                capturedBlack = d.capturedBlack; turn = d.turn; movedStatus = d.movedStatus;
-                moveStats = d.moveStats || moveStats;
+                const d = JSON.parse(saved); boardState = d.boardState; capturedWhite = d.capturedWhite;
+                capturedBlack = d.capturedBlack; turn = d.turn; movedStatus = d.movedStatus; moveStats = d.moveStats || moveStats;
             } else { resetGameData(); }
             render();
         }
@@ -191,7 +174,7 @@
 
         function renderStats() {
             const wPanel = document.getElementById('stats-white'); const bPanel = document.getElementById('stats-black');
-            const labelMap = { P:'폰', N:'나이트', B:'비숍', R:'룩', Q:'퀸', K:'킹' };
+            const labelMap = { P:'P', N:'N', B:'B', R:'R', Q:'Q', K:'K' };
             wPanel.innerHTML = "<b>나 (White)</b>";
             for(let key in moveStats.White) { wPanel.innerHTML += `<div class="stats-row"><span>${labelMap[key]}</span><span>${moveStats.White[key]}</span></div>`; }
             bPanel.innerHTML = "<b>AI (Black)</b>";
@@ -199,8 +182,7 @@
         }
 
         function render() {
-            const board = document.getElementById('board');
-            board.innerHTML = '<div id="promotion-overlay"></div>';
+            const board = document.getElementById('board'); board.innerHTML = '<div id="promotion-overlay"></div>';
             const inCheck = isCheck(boardState, turn);
             for (let r=0; r<8; r++) for (let c=0; c<8; c++) {
                 const s = document.createElement('div'); s.className = `square ${(r+c)%2===0?'light':'dark'}`;
@@ -208,13 +190,9 @@
                 if (selected?.r === r && selected?.c === c) s.classList.add('selected');
                 if (pending && ((pending.fr===r && pending.fc===c) || (pending.tr===r && pending.tc===c))) s.classList.add('pending');
                 if (p === (turn==='White'?'K':'k') && inCheck) s.classList.add('check');
-                if (p) {
-                    const span = document.createElement('span'); span.textContent = pieces[p];
-                    span.className = (p === p.toUpperCase() ? 'white-piece' : 'black-piece'); s.appendChild(span);
-                }
+                if (p) { const span = document.createElement('span'); span.textContent = pieces[p]; span.className = (p === p.toUpperCase() ? 'white-piece' : 'black-piece'); s.appendChild(span); }
                 s.onclick = () => handleSquareClick(r, c); board.appendChild(s);
             }
-            // 캡처 영역 업데이트 (라벨 추가)
             document.getElementById('white-captured').innerHTML = "내가 가져옴: " + capturedWhite.map(p => pieces[p]).join('');
             document.getElementById('black-captured').innerHTML = "상대가 가져감: " + capturedBlack.map(p => pieces[p]).join('');
             updateCastleButtons(); renderStats();
@@ -280,12 +258,7 @@
             const bk = document.getElementById('btn-castle-king'); const bq = document.getElementById('btn-castle-queen');
             bk.style.display = 'none'; bq.style.display = 'none';
             if(!selected || boardState[selected.r][selected.c] !== 'K' || turn !== 'White' || isCheck(boardState, 'White')) return;
-            const isAttacked = (r, c) => {
-                for(let i=0; i<8; i++) for(let j=0; j<8; j++){
-                    let p=boardState[i][j]; if(!p) continue;
-                    if(p===p.toLowerCase() && isValidRaw(boardState, i, j, r, c)) return true;
-                } return false;
-            };
+            const isAttacked = (r, c) => { for(let i=0; i<8; i++) for(let j=0; j<8; j++){ let p=boardState[i][j]; if(!p) continue; if(p===p.toLowerCase() && isValidRaw(boardState, i, j, r, c)) return true; } return false; };
             if(!movedStatus.wK && !movedStatus.wR2 && boardState[7][5]==='' && boardState[7][6]==='' && !isAttacked(7, 5)) bk.style.display = 'block';
             if(!movedStatus.wK && !movedStatus.wR1 && boardState[7][1]==='' && boardState[7][2]==='' && boardState[7][3]==='' && !isAttacked(7, 2)) bq.style.display = 'block';
         }
@@ -303,7 +276,7 @@
         };
 
         window.cancelMove = () => { if(!pending) return; boardState = lastState; pending = null; document.getElementById('btn-confirm').style.display = 'none'; document.getElementById('btn-cancel').style.display = 'none'; render(); };
-        window.resetGame = () => { if(confirm("초기화하시겠습니까?")) { localStorage.removeItem('chess_v42_save'); resetGameData(); } };
+        window.resetGame = () => { if(confirm("초기화하시겠습니까?")) { localStorage.removeItem('chess_v43_save'); resetGameData(); } };
 
         ai.onmessage = (e) => {
             const m = e.data; document.getElementById('ai-loader').style.visibility = 'hidden';
