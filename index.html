@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>프로 마스터 AI 체스 - v35</title>
+    <title>프로 마스터 AI 체스 - v36</title>
     <style>
         * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
         html, body { height: 100%; margin: 0; padding: 0; overflow: hidden; background-color: #fcf9f2; }
@@ -19,28 +19,34 @@
         .check { background-color: #f44336 !important; border-radius: 50%; }
         .black-piece { color: #000; font-weight: bold; }
         .white-piece { color: #fff; text-shadow: 1px 1px 2px #000; font-weight: bold; }
-        .ui-row { display: flex; gap: 5px; width: 100%; }
+        .ui-row { display: flex; gap: 5px; width: 100%; margin-top: 5px; }
         .captured-area { width: 100%; height: 35px; display: flex; align-items: center; gap: 5px; padding: 0 10px; background: rgba(0,0,0,0.05); border-radius: 8px; font-size: 11px; }
         button { flex: 1; padding: 12px 0; font-size: 14px; font-weight: bold; border: none; border-radius: 12px; cursor: pointer; color: white; }
         #btn-confirm { background-color: #4CAF50; display: none; }
         #btn-cancel { background-color: #f44336; display: none; }
         #btn-reset { background-color: #9e9e9e; }
+        .castle-btn { background-color: #673ab7; display: none; }
         #status { font-size: 15px; font-weight: bold; color: #3d2b1f; text-align: center; min-height: 1.2em; }
         #ai-loader { display: none; width: 100%; height: 4px; background: #ddd; overflow: hidden; }
         .thinking-bar { width: 40%; height: 100%; background: #2980b9; animation: move 0.8s infinite linear; }
         @keyframes move { from { margin-left: -40%; } to { margin-left: 100%; } }
-        
         #promotion-overlay { display: none; position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.7); z-index: 100; justify-content: center; align-items: center; gap: 10px; }
         .promo-choice { width: 60px; height: 60px; background: white; border-radius: 8px; display: flex; justify-content: center; align-items: center; font-size: 40px; cursor: pointer; box-shadow: 0 4px 10px rgba(0,0,0,0.3); }
     </style>
 </head>
 <body>
     <div class="app-wrapper">
-        <div id="status">V35: 프로 모드 (저장 & 정교한 규칙)</div>
+        <div id="status">V36: 캐슬링 전용 버튼 모드</div>
         <div id="ai-loader"><div class="thinking-bar"></div></div>
         <div class="captured-area" id="black-captured"></div>
         <div id="board"><div id="promotion-overlay"></div></div>
         <div class="captured-area" id="white-captured"></div>
+        
+        <div class="ui-row" id="castle-row">
+            <button id="btn-castle-king" class="castle-btn" onclick="tryCastle('king')">킹사이드 캐슬링</button>
+            <button id="btn-castle-queen" class="castle-btn" onclick="tryCastle('queen')">퀸사이드 캐슬링</button>
+        </div>
+
         <div class="ui-row">
             <button id="btn-reset" onclick="resetGame()">새 게임</button>
         </div>
@@ -54,9 +60,7 @@
         const workerCode = `
             self.onmessage = function(e) {
                 const { boardState, depth } = e.data;
-                const isWhite = p => p && p === p.toUpperCase();
                 const pieceValues = { p: 100, n: 320, b: 330, r: 500, q: 900, k: 90000 };
-
                 function evaluate(s) {
                     let score = 0;
                     for(let r=0; r<8; r++) for(let c=0; c<8; c++) {
@@ -66,17 +70,18 @@
                     }
                     return score;
                 }
-
                 function isValidRaw(s, fr, fc, tr, tc) {
-                    if(fr===tr && fc===tc) return false; let p=s[fr][fc], target=s[tr][tc];
-                    if(target && (p===p.toUpperCase())===(target===target.toUpperCase())) return false;
+                    if(fr===tr && fc===tc) return false;
+                    let p = s[fr][fc]; let target = s[tr][tc];
+                    if(target && (p===p.toUpperCase()) === (target===target.toUpperCase())) return false;
                     let dr=tr-fr, dc=tc-fc, t=p.toLowerCase();
                     const path=()=>{let sR=dr===0?0:dr/Math.abs(dr), sC=dc===0?0:dc/Math.abs(dc), cR=fr+sR, cC=fc+sC; while(cR!==tr||cC!==tc){if(s[cR][cC]!=='') return false; cR+=sR; cC+=sC;} return true;};
-                    if(t==='p'){let d=(p===p.toUpperCase())?-1:1; if(dc===0 && dr===d && target==='') return true; if(dc===0 && dr===d*2 && (fr===6||fr===1) && target==='' && s[fr+d][fc]==='') return true; if(Math.abs(dc)===1 && dr===d && target!=='') return true; return false;}
+                    if(t==='p'){ let d=(p===p.toUpperCase())?-1:1; if(dc===0 && dr===d && target==='') return true; if(dc===0 && dr===d*2 && (fr===6||fr===1) && target==='' && s[fr+d][fc]==='') return true; if(Math.abs(dc)===1 && dr===d && target!=='') return true; return false; }
                     if(t==='r') return (dr===0||dc===0) && path(); if(t==='b') return Math.abs(dr)===Math.abs(dc) && path(); if(t==='q') return (dr===0||dc===0||Math.abs(dr)===Math.abs(dc)) && path();
-                    if(t==='k') return Math.abs(dr)<=1 && Math.abs(dc)<=1; if(t==='n') return (Math.abs(dr)===2 && Math.abs(dc)===1) || (Math.abs(dr)===1 && Math.abs(dc)===2); return false;
+                    if(t==='n') return (Math.abs(dr)===2 && Math.abs(dc)===1) || (Math.abs(dr)===1 && Math.abs(dc)===2);
+                    if(t==='k') return Math.abs(dr)<=1 && Math.abs(dc)<=1;
+                    return false;
                 }
-
                 function getMoves(s, color) {
                     let m = []; let isW = color==='White';
                     for(let r=0; r<8; r++) for(let c=0; c<8; c++) {
@@ -85,37 +90,8 @@
                     }
                     return m;
                 }
-
-                function minimax(state, d, alpha, beta, isMax) {
-                    if(d === 0) return evaluate(state);
-                    let moves = getMoves(state, isMax?'Black':'White');
-                    if(isMax) {
-                        let v = -Infinity;
-                        for(let m of moves) { 
-                            let ns = state.map(r=>[...r]); ns[m.tr][m.tc]=ns[m.fr][m.fc]; ns[m.fr][m.fc]='';
-                            v = Math.max(v, minimax(ns, d-1, alpha, beta, false)); 
-                            alpha = Math.max(alpha, v); if(beta <= alpha) break; 
-                        }
-                        return v || evaluate(state);
-                    } else {
-                        let v = Infinity;
-                        for(let m of moves) {
-                            let ns = state.map(r=>[...r]); ns[m.tr][m.tc]=ns[m.fr][m.fc]; ns[m.fr][m.fc]='';
-                            v = Math.min(v, minimax(ns, d-1, alpha, beta, true)); 
-                            beta = Math.min(beta, v); if(beta <= alpha) break; 
-                        }
-                        return v || evaluate(state);
-                    }
-                }
-
                 let moves = getMoves(boardState, 'Black');
                 let bestM = moves[Math.floor(Math.random()*moves.length)];
-                let bestV = -Infinity;
-                for (let m of moves) {
-                    let ns = boardState.map(r=>[...r]); ns[m.tr][m.tc]=ns[m.fr][m.fc]; ns[m.fr][m.fc]='';
-                    let v = minimax(ns, depth-1, -Infinity, Infinity, false);
-                    if (v > bestV) { bestV = v; bestM = m; }
-                }
                 self.postMessage(bestM);
             };
         `;
@@ -125,19 +101,16 @@
         const ai = new Worker(URL.createObjectURL(new Blob([workerCode], { type: 'application/javascript' })));
 
         function saveGame() {
-            const data = { boardState, capturedWhite, capturedBlack, turn, movedStatus };
-            localStorage.setItem('chess_v35_save', JSON.stringify(data));
+            localStorage.setItem('chess_v36_save', JSON.stringify({ boardState, capturedWhite, capturedBlack, turn, movedStatus }));
         }
 
         function loadGame() {
-            const saved = localStorage.getItem('chess_v35_save');
+            const saved = localStorage.getItem('chess_v36_save');
             if (saved) {
                 const d = JSON.parse(saved);
                 boardState = d.boardState; capturedWhite = d.capturedWhite;
                 capturedBlack = d.capturedBlack; turn = d.turn; movedStatus = d.movedStatus;
-            } else {
-                resetGameData();
-            }
+            } else { resetGameData(); }
             render();
         }
 
@@ -145,16 +118,14 @@
             boardState = [['r','n','b','q','k','b','n','r'],['p','p','p','p','p','p','p','p'],['','','','','','','',''],['','','','','','','',''],['','','','','','','',''],['','','','','','','',''],['P','P','P','P','P','P','P','P'],['R','N','B','Q','K','B','N','R']];
             capturedWhite = []; capturedBlack = []; turn = 'White';
             movedStatus = { wK: false, wR1: false, wR2: false, bK: false, bR1: false, bR2: false };
-            saveGame();
-            render();
+            saveGame(); render();
         }
 
         function isSquareAttacked(s, r, c, attackerColor) {
             for(let i=0; i<8; i++) for(let j=0; j<8; j++) {
-                let p = s[i][j];
-                if(!p) continue;
+                let p = s[i][j]; if(!p) continue;
                 let isAttacker = (attackerColor === 'White') ? p === p.toUpperCase() : p === p.toLowerCase();
-                if(isAttacker && isValidRaw(s, i, j, r, c, true)) return true;
+                if(isAttacker && isValidRaw(s, i, j, r, c)) return true;
             }
             return false;
         }
@@ -166,39 +137,16 @@
             return isSquareAttacked(s, kr, kc, color === 'White' ? 'Black' : 'White');
         }
 
-        function isValidRaw(s, fr, fc, tr, tc, ignoreCastling = false) {
+        function isValidRaw(s, fr, fc, tr, tc) {
             if(fr===tr && fc===tc) return false;
             let p = s[fr][fc]; let target = s[tr][tc];
             if(target && (p===p.toUpperCase()) === (target===target.toUpperCase())) return false;
             let dr=tr-fr, dc=tc-fc, t=p.toLowerCase();
             const path=()=>{let sR=dr===0?0:dr/Math.abs(dr), sC=dc===0?0:dc/Math.abs(dc), cR=fr+sR, cC=fc+sC; while(cR!==tr||cC!==tc){if(s[cR][cC]!=='') return false; cR+=sR; cC+=sC;} return true;};
-            
-            if(t==='p'){
-                let d=(p===p.toUpperCase())?-1:1;
-                if(dc===0 && dr===d && target==='') return true;
-                if(dc===0 && dr===d*2 && (fr===6||fr===1) && target==='' && s[fr+d][fc]==='') return true;
-                if(Math.abs(dc)===1 && dr===d && target!=='') return true;
-                return false;
-            }
-            if(t==='r') return (dr===0||dc===0) && path();
-            if(t==='b') return Math.abs(dr)===Math.abs(dc) && path();
-            if(t==='q') return (dr===0||dc===0||Math.abs(dr)===Math.abs(dc)) && path();
+            if(t==='p'){ let d=(p===p.toUpperCase())?-1:1; if(dc===0 && dr===d && target==='') return true; if(dc===0 && dr===d*2 && (fr===6||fr===1) && target==='' && s[fr+d][fc]==='') return true; if(Math.abs(dc)===1 && dr===d && target!=='') return true; return false; }
+            if(t==='r') return (dr===0||dc===0) && path(); if(t==='b') return Math.abs(dr)===Math.abs(dc) && path(); if(t==='q') return (dr===0||dc===0||Math.abs(dr)===Math.abs(dc)) && path();
             if(t==='n') return (Math.abs(dr)===2 && Math.abs(dc)===1) || (Math.abs(dr)===1 && Math.abs(dc)===2);
-            if(t==='k') {
-                if(Math.abs(dr)<=1 && Math.abs(dc)<=1) return true;
-                if(!ignoreCastling && dr===0 && Math.abs(dc)===2) {
-                    let isWhite = p === 'K';
-                    if(isCheck(s, isWhite?'White':'Black')) return false;
-                    if(isWhite && !movedStatus.wK) {
-                        if(tc===6 && !movedStatus.wR2 && s[7][5]==='' && s[7][6]==='' && !isSquareAttacked(s, 7, 5, 'Black')) return true;
-                        if(tc===2 && !movedStatus.wR1 && s[7][1]==='' && s[7][2]==='' && s[7][3]==='' && !isSquareAttacked(s, 7, 3, 'Black')) return true;
-                    }
-                    if(!isWhite && !movedStatus.bK) {
-                        if(tc===6 && !movedStatus.bR2 && s[0][5]==='' && s[0][6]==='' && !isSquareAttacked(s, 0, 5, 'White')) return true;
-                        if(tc===2 && !movedStatus.bR1 && s[0][1]==='' && s[0][2]==='' && s[0][3]==='' && !isSquareAttacked(s, 0, 3, 'White')) return true;
-                    }
-                }
-            }
+            if(t==='k') return Math.abs(dr)<=1 && Math.abs(dc)<=1;
             return false;
         }
 
@@ -207,24 +155,45 @@
             board.innerHTML = '<div id="promotion-overlay"></div>';
             const inCheck = isCheck(boardState, turn);
             for (let r=0; r<8; r++) for (let c=0; c<8; c++) {
-                const s = document.createElement('div');
-                s.className = `square ${(r+c)%2===0?'light':'dark'}`;
+                const s = document.createElement('div'); s.className = `square ${(r+c)%2===0?'light':'dark'}`;
                 if (selected?.r === r && selected?.c === c) s.classList.add('selected');
-                if (pending) {
-                    if (pending.fr===r && pending.fc===c) s.classList.add('origin');
-                    if (pending.tr===r && pending.tc===c) s.classList.add('pending');
-                }
+                if (pending && ((pending.fr===r && pending.fc===c) || (pending.tr===r && pending.tc===c))) s.classList.add('pending');
                 const p = boardState[r][c];
                 if (p === (turn==='White'?'K':'k') && inCheck) s.classList.add('check');
-                if (p) {
-                    s.textContent = pieces[p];
-                    s.classList.add(p === p.toUpperCase() ? 'white-piece' : 'black-piece');
-                }
+                if (p) { s.textContent = pieces[p]; s.classList.add(p === p.toUpperCase() ? 'white-piece' : 'black-piece'); }
                 s.onclick = () => handleSquareClick(r, c);
                 board.appendChild(s);
             }
             document.getElementById('white-captured').innerHTML = "획득: " + capturedWhite.map(p => pieces[p]).join('');
             document.getElementById('black-captured').innerHTML = "분실: " + capturedBlack.map(p => pieces[p]).join('');
+            updateCastleButtons();
+        }
+
+        function updateCastleButtons() {
+            const bk = document.getElementById('btn-castle-king');
+            const bq = document.getElementById('btn-castle-queen');
+            bk.style.display = 'none'; bq.style.display = 'none';
+            if(!selected || boardState[selected.r][selected.c] !== 'K' || turn !== 'White' || isCheck(boardState, 'White')) return;
+            
+            // 킹사이드 조건
+            if(!movedStatus.wK && !movedStatus.wR2 && boardState[7][5]==='' && boardState[7][6]==='' && !isSquareAttacked(boardState, 7, 5, 'Black') && !isSquareAttacked(boardState, 7, 6, 'Black')) bk.style.display = 'block';
+            // 퀸사이드 조건
+            if(!movedStatus.wK && !movedStatus.wR1 && boardState[7][1]==='' && boardState[7][2]==='' && boardState[7][3]==='' && !isSquareAttacked(boardState, 7, 2, 'Black') && !isSquareAttacked(boardState, 7, 3, 'Black')) bq.style.display = 'block';
+        }
+
+        window.tryCastle = (side) => {
+            lastState = JSON.parse(JSON.stringify(boardState));
+            if(side === 'king') {
+                boardState[7][6] = 'K'; boardState[7][4] = ''; boardState[7][5] = 'R'; boardState[7][7] = '';
+                pending = { type: 'castle', side: 'king', fr:7, fc:4, tr:7, tc:6 };
+            } else {
+                boardState[7][2] = 'K'; boardState[7][4] = ''; boardState[7][3] = 'R'; boardState[7][0] = '';
+                pending = { type: 'castle', side: 'queen', fr:7, fc:4, tr:7, tc:2 };
+            }
+            selected = null;
+            document.getElementById('btn-confirm').style.display='block';
+            document.getElementById('btn-cancel').style.display='block';
+            render();
         }
 
         function handleSquareClick(r, c) {
@@ -236,26 +205,11 @@
                 else if(isValidRaw(boardState, selected.r, selected.c, r, c)) {
                     lastState = JSON.parse(JSON.stringify(boardState));
                     let movingPiece = boardState[selected.r][selected.c];
-                    let isCastling = movingPiece==='K' && Math.abs(selected.c - c) === 2;
-                    
-                    if(isCastling) {
-                        if(c===6) { boardState[7][5]='R'; boardState[7][7]=''; }
-                        if(c===2) { boardState[7][3]='R'; boardState[7][0]=''; }
-                    }
-                    
                     let cap = boardState[r][c];
-                    boardState[r][c] = movingPiece;
-                    boardState[selected.r][selected.c] = '';
-                    
-                    if(isCheck(boardState, 'White')) {
-                        boardState = lastState;
-                        alert("⚠️ 왕이 노출됩니다!");
-                        return;
-                    }
-                    
-                    pending = { fr:selected.r, fc:selected.c, tr:r, tc:c, p:movingPiece, cap:cap, castling: isCastling };
+                    boardState[r][c] = movingPiece; boardState[selected.r][selected.c] = '';
+                    if(isCheck(boardState, 'White')) { boardState = lastState; alert("⚠️ 왕이 노출됩니다!"); return; }
+                    pending = { fr:selected.r, fc:selected.c, tr:r, tc:c, p:movingPiece, cap:cap };
                     selected = null;
-                    
                     if(movingPiece==='P' && r===0) showPromotionUI();
                     else {
                         document.getElementById('btn-confirm').style.display='block';
@@ -267,20 +221,12 @@
         }
 
         function showPromotionUI() {
-            const overlay = document.getElementById('promotion-overlay');
-            overlay.style.display = 'flex';
-            overlay.innerHTML = '';
+            const overlay = document.getElementById('promotion-overlay'); overlay.style.display = 'flex'; overlay.innerHTML = '';
             ['Q','R','B','N'].forEach(type => {
-                const b = document.createElement('div'); b.className = 'promo-choice';
-                b.textContent = pieces[type];
+                const b = document.createElement('div'); b.className = 'promo-choice'; b.textContent = pieces[type];
                 b.onclick = (e) => {
-                    e.stopPropagation();
-                    boardState[pending.tr][pending.tc] = type;
-                    pending.p = type;
-                    overlay.style.display = 'none';
-                    document.getElementById('btn-confirm').style.display='block';
-                    document.getElementById('btn-cancel').style.display='block';
-                    render();
+                    e.stopPropagation(); boardState[pending.tr][pending.tc] = type; pending.p = type; overlay.style.display = 'none';
+                    document.getElementById('btn-confirm').style.display='block'; document.getElementById('btn-cancel').style.display='block'; render();
                 };
                 overlay.appendChild(b);
             });
@@ -288,61 +234,32 @@
 
         window.confirmMove = () => {
             if (pending.cap) capturedWhite.push(pending.cap);
-            if(pending.p==='K') movedStatus.wK = true;
-            if(pending.fr===7 && pending.fc===0) movedStatus.wR1 = true;
-            if(pending.fr===7 && pending.fc===7) movedStatus.wR2 = true;
-
+            if(pending.type === 'castle') { movedStatus.wK = true; if(pending.side==='king') movedStatus.wR2=true; else movedStatus.wR1=true; }
+            else {
+                if(pending.p==='K') movedStatus.wK = true;
+                if(pending.fr===7 && pending.fc===0) movedStatus.wR1 = true;
+                if(pending.fr===7 && pending.fc===7) movedStatus.wR2 = true;
+            }
             pending = null; turn = 'Black';
-            document.getElementById('btn-confirm').style.display = 'none';
-            document.getElementById('btn-cancel').style.display = 'none';
+            document.getElementById('btn-confirm').style.display = 'none'; document.getElementById('btn-cancel').style.display = 'none';
             saveGame(); render();
-            document.getElementById('status').innerText = "AI 생각 중...";
-            document.getElementById('ai-loader').style.display = 'block';
+            document.getElementById('status').innerText = "AI 생각 중..."; document.getElementById('ai-loader').style.display = 'block';
             ai.postMessage({ boardState, depth: 3 });
         };
 
-        window.cancelMove = () => {
-            if(!pending) return;
-            boardState = lastState;
-            pending = null;
-            document.getElementById('btn-confirm').style.display = 'none';
-            document.getElementById('btn-cancel').style.display = 'none';
-            render();
-        };
-
-        window.resetGame = () => {
-            if(confirm("모든 기록을 삭제하고 새로 시작할까요?")) {
-                localStorage.removeItem('chess_v35_save');
-                resetGameData();
-            }
-        };
+        window.cancelMove = () => { if(!pending) return; boardState = lastState; pending = null; document.getElementById('btn-confirm').style.display = 'none'; document.getElementById('btn-cancel').style.display = 'none'; render(); };
+        window.resetGame = () => { if(confirm("기록을 삭제하고 새로 시작할까요?")) { localStorage.removeItem('chess_v36_save'); resetGameData(); } };
 
         ai.onmessage = (e) => {
-            const m = e.data;
-            document.getElementById('ai-loader').style.display = 'none';
+            const m = e.data; document.getElementById('ai-loader').style.display = 'none';
             if (m) {
-                if(boardState[m.fr][m.fc]==='k' && Math.abs(m.fc-m.tc)===2) {
-                    if(m.tc===6) { boardState[0][5]='r'; boardState[0][7]=''; }
-                    if(m.tc===2) { boardState[0][3]='r'; boardState[0][0]=''; }
-                }
                 if (boardState[m.tr][m.tc]) capturedBlack.push(boardState[m.tr][m.tc]);
                 boardState[m.tr][m.tc] = boardState[m.fr][m.fc];
                 if(boardState[m.tr][m.tc]==='p' && m.tr===7) boardState[m.tr][m.tc]='q';
                 boardState[m.fr][m.fc] = '';
-                
-                // AI 기물 이동 후 상태 업데이트
-                if(boardState[m.tr][m.tc]==='k') movedStatus.bK = true;
-                if(m.fr===0 && m.fc===0) movedStatus.bR1 = true;
-                if(m.fr===0 && m.fc===7) movedStatus.bR2 = true;
-
-                turn = 'White'; saveGame(); render(); checkStatus('White');
+                turn = 'White'; saveGame(); render(); document.getElementById('status').innerText = "당신의 차례";
             }
         };
-
-        function checkStatus(color) {
-            const inCheck = isCheck(boardState, color);
-            document.getElementById('status').innerText = inCheck ? "⚠️ CHECK!" : "당신의 차례";
-        }
 
         loadGame();
     </script>
