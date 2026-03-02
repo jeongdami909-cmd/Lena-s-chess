@@ -3,55 +3,73 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>프로 마스터 AI 체스 - v38 Hyper</title>
+    <title>프로 AI 체스 - v39 Grandmaster</title>
     <style>
         * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
-        html, body { height: 100%; margin: 0; padding: 0; overflow: hidden; background-color: #fcf9f2; }
-        body { display: flex; flex-direction: column; align-items: center; font-family: -apple-system, sans-serif; padding: env(safe-area-inset-top) 10px env(safe-area-inset-bottom) 10px; }
-        .app-wrapper { width: 100%; max-width: 400px; height: 100%; display: flex; flex-direction: column; justify-content: space-evenly; }
+        html, body { height: 100%; margin: 0; padding: 0; overflow: hidden; background-color: #f0ede5; }
+        body { display: flex; flex-direction: column; align-items: center; font-family: -apple-system, sans-serif; padding: 10px; }
+        .app-wrapper { width: 100%; max-width: 400px; height: 100%; display: flex; flex-direction: column; justify-content: space-between; }
         
-        /* 레이아웃 고정 */
-        #ui-header { height: 60px; display: flex; flex-direction: column; justify-content: center; align-items: center; width: 100%; }
-        #status { font-size: 16px; font-weight: bold; color: #3d2b1f; margin-bottom: 4px; height: 1.2em; }
-        #ai-loader { visibility: hidden; width: 80%; height: 6px; background: #eee; overflow: hidden; border-radius: 3px; }
-        .thinking-bar { width: 30%; height: 100%; background: #2980b9; animation: move 1.2s infinite linear; }
-        @keyframes move { from { margin-left: -30%; } to { margin-left: 100%; } }
+        #ui-header { height: 70px; display: flex; flex-direction: column; justify-content: center; align-items: center; text-align: center; }
+        #status { font-size: 16px; font-weight: 800; color: #2c3e50; margin-bottom: 5px; }
+        #ai-loader { visibility: hidden; width: 100%; height: 4px; background: #dcdde1; overflow: hidden; border-radius: 2px; }
+        .thinking-bar { width: 35%; height: 100%; background: #3498db; animation: move 1s infinite linear; }
+        @keyframes move { from { margin-left: -35%; } to { margin-left: 100%; } }
 
-        #board { display: grid; grid-template-columns: repeat(8, 1fr); grid-template-rows: repeat(8, 1fr); width: 100%; aspect-ratio: 1 / 1; border: 5px solid #3d2b1f; background-color: #3d2b1f; box-shadow: 0 8px 25px rgba(0,0,0,0.3); position: relative; }
-        .square { display: flex; justify-content: center; align-items: center; font-size: 8.5vw; cursor: pointer; user-select: none; position: relative; }
-        @media (min-width: 400px) { .square { font-size: 40px; } }
+        /* 보드 버그 수정: 엄격한 그리드 유지 */
+        #board { 
+            display: grid; 
+            grid-template-columns: repeat(8, 12.5%); 
+            grid-template-rows: repeat(8, 12.5%); 
+            width: 100%; 
+            aspect-ratio: 1 / 1; 
+            border: 6px solid #3d2b1f; 
+            background-color: #3d2b1f; 
+            box-shadow: 0 10px 30px rgba(0,0,0,0.3); 
+            position: relative;
+            overflow: hidden; /* 칸 합쳐짐 방지 */
+        }
+        .square { 
+            display: flex; justify-content: center; align-items: center; 
+            font-size: 8.5vw; cursor: pointer; user-select: none; position: relative;
+            width: 100%; height: 100%;
+        }
+        @media (min-width: 400px) { .square { font-size: 38px; } }
         
-        .light { background-color: #fceecf; } .dark { background-color: #b58863; }
-        .selected { background-color: #7b9a58 !important; }
-        .pending { background-color: #e5c158 !important; }
-        .origin { background-color: #d4a76a !important; opacity: 0.6; }
+        .light { background-color: #f1d9b5; } .dark { background-color: #b58863; }
+        .selected { background-color: #bac466 !important; }
+        .pending { background-color: #f6e58d !important; }
+        .origin { background-color: #f9ca24 !important; opacity: 0.6; }
         
-        /* 체크 시 강렬한 효과 */
-        .check::before { content: ''; position: absolute; width: 85%; height: 85%; background: radial-gradient(circle, #f44336 40%, transparent 70%); border-radius: 50%; z-index: 0; animation: pulse 1s infinite; }
-        @keyframes pulse { 0% { opacity: 0.5; transform: scale(0.9); } 50% { opacity: 1; transform: scale(1); } 100% { opacity: 0.5; transform: scale(0.9); } }
-        .square span { z-index: 1; position: relative; }
+        /* 체크메이트/체크 효과 */
+        .check::after { 
+            content: ''; position: absolute; width: 90%; height: 90%; 
+            background: radial-gradient(circle, rgba(235, 77, 75, 0.8) 30%, transparent 70%); 
+            border-radius: 50%; z-index: 0; 
+        }
+        .square span { z-index: 1; position: relative; pointer-events: none; }
 
-        .black-piece { color: #000; filter: drop-shadow(0 0 1px #fff); }
-        .white-piece { color: #fff; filter: drop-shadow(0 2px 3px rgba(0,0,0,0.5)); }
+        .black-piece { color: #000; filter: drop-shadow(0 2px 2px rgba(255,255,255,0.2)); }
+        .white-piece { color: #fff; filter: drop-shadow(0 2px 4px rgba(0,0,0,0.4)); }
         
-        .captured-area { width: 100%; height: 40px; display: flex; align-items: center; gap: 4px; padding: 0 10px; background: rgba(0,0,0,0.04); border-radius: 10px; font-size: 18px; overflow: hidden; }
-        .ui-row { display: flex; gap: 10px; width: 100%; }
+        .captured-area { width: 100%; height: 40px; display: flex; align-items: center; gap: 2px; padding: 0 10px; background: #e0e0e0; border-radius: 8px; font-size: 18px; overflow: hidden; }
+        .ui-row { display: flex; gap: 8px; width: 100%; margin-bottom: 5px; }
         
-        button { flex: 1; padding: 14px 0; font-size: 15px; font-weight: bold; border: none; border-radius: 12px; cursor: pointer; color: white; box-shadow: 0 4px 0 rgba(0,0,0,0.2); }
-        button:active { transform: translateY(2px); box-shadow: none; }
-        #btn-confirm { background-color: #2ecc71; display: none; }
-        #btn-cancel { background-color: #e74c3c; display: none; }
-        #btn-reset { background-color: #95a5a6; }
-        .castle-btn { background-color: #9b59b6; display: none; }
+        button { flex: 1; padding: 14px 0; font-size: 14px; font-weight: bold; border: none; border-radius: 10px; cursor: pointer; color: white; transition: 0.1s; }
+        button:active { filter: brightness(0.8); }
+        #btn-confirm { background-color: #27ae60; display: none; }
+        #btn-cancel { background-color: #c0392b; display: none; }
+        #btn-reset { background-color: #7f8c8d; }
+        .castle-btn { background-color: #8e44ad; display: none; border-bottom: 3px solid #6d3285; }
 
-        #promotion-overlay { display: none; position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); z-index: 100; justify-content: center; align-items: center; gap: 12px; }
-        .promo-choice { width: 70px; height: 70px; background: #fff; border-radius: 15px; display: flex; justify-content: center; align-items: center; font-size: 48px; cursor: pointer; }
+        #promotion-overlay { display: none; position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.85); z-index: 100; justify-content: center; align-items: center; gap: 10px; }
+        .promo-choice { width: 65px; height: 65px; background: #fff; border-radius: 12px; display: flex; justify-content: center; align-items: center; font-size: 40px; cursor: pointer; box-shadow: 0 5px 15px rgba(0,0,0,0.5); }
     </style>
 </head>
 <body>
     <div class="app-wrapper">
         <div id="ui-header">
-            <div id="status">V38 Hyper Master</div>
+            <div id="status">Grandmaster AI Edition</div>
             <div id="ai-loader"><div class="thinking-bar"></div></div>
         </div>
 
@@ -69,22 +87,22 @@
         </div>
         <div class="ui-row">
             <button id="btn-cancel" onclick="cancelMove()">이동 취소</button>
-            <button id="btn-confirm" onclick="confirmMove()">이동 확정</button>
+            <button id="btn-confirm" onclick="confirmMove()">이동 확정 (턴 종료)</button>
         </div>
     </div>
 
     <script>
-        // --- 강화된 AI 워커 (전 기물 점수표 주입) ---
+        // --- Grandmaster Level AI Worker ---
         const workerCode = `
             self.onmessage = function(e) {
                 const { boardState, depth } = e.data;
                 const pVals = { p:100, n:320, b:330, r:500, q:900, k:20000 };
                 
-                // 전 기물 PST (Piece-Square Tables)
+                // 그랜드마스터 데이터 기반 PST (기물 배치 최적화)
                 const pst = {
-                    p: [0,0,0,0,0,0,0,0, 50,50,50,50,50,50,50,50, 10,10,20,30,30,20,10,10, 5,5,10,25,25,10,5,5, 0,0,0,20,20,0,0,0, 5,-5,-10,0,0,-10,-5,5, 5,10,10,-20,-20,10,10,5, 0,0,0,0,0,0,0,0],
-                    n: [-50,-40,-30,-30,-30,-30,-40,-50, -40,-20,0,5,5,0,-20,-40, -30,5,10,15,15,10,5,-30, -30,0,15,20,20,15,0,-30, -30,5,15,20,20,15,5,-30, -30,0,10,15,15,10,0,-30, -40,-20,0,0,0,0,-20,-40, -50,-40,-30,-30,-30,-30,-40,-50],
-                    b: [-20,-10,-10,-10,-10,-10,-10,-20, -10,5,0,0,0,0,5,-10, -10,10,10,10,10,10,10,-10, -10,0,10,10,10,10,0,-10, -10,5,5,10,10,5,5,-10, -10,0,5,10,10,5,0,-10, -10,0,0,0,0,0,0,-10, -20,-10,-10,-10,-10,-10,-10,-20],
+                    p: [0,0,0,0,0,0,0,0, 50,50,50,50,50,50,50,50, 10,10,20,30,30,20,10,10, 5,5,10,27,27,10,5,5, 0,0,0,25,25,0,0,0, 5,-5,-10,0,0,-10,-5,5, 5,10,10,-25,-25,10,10,5, 0,0,0,0,0,0,0,0],
+                    n: [-50,-40,-30,-30,-30,-30,-40,-50, -40,-20,0,5,5,0,-20,-40, -30,5,15,20,20,15,5,-30, -30,0,20,25,25,20,0,-30, -30,5,20,25,25,20,5,-30, -30,0,15,20,20,15,0,-30, -40,-20,0,5,5,0,-20,-40, -50,-40,-30,-30,-30,-30,-40,-50],
+                    b: [-20,-10,-10,-10,-10,-10,-10,-20, -10,5,0,0,0,0,5,-10, -10,10,10,10,10,10,10,-10, -10,0,10,15,15,10,0,-10, -10,5,5,15,15,5,5,-10, -10,0,5,10,10,5,0,-10, -10,0,0,0,0,0,0,-10, -20,-10,-10,-10,-10,-10,-10,-20],
                     r: [0,0,0,5,5,0,0,0, 5,10,10,10,10,10,10,5, -5,0,0,0,0,0,0,-5, -5,0,0,0,0,0,0,-5, -5,0,0,0,0,0,0,-5, -5,0,0,0,0,0,0,-5, 5,10,10,10,10,10,10,5, 0,0,0,0,0,0,0,0],
                     q: [-20,-10,-10,-5,-5,-10,-10,-20, -10,0,5,0,0,0,0,-10, -10,5,5,5,5,5,0,-10, 0,0,5,5,5,5,0,-5, -5,0,5,5,5,5,0,-5, -10,0,5,5,5,5,0,-10, -10,0,0,0,0,0,0,-10, -20,-10,-10,-5,-5,-10,-10,-20],
                     k: [20,30,10,0,0,10,30,20, 20,20,0,0,0,0,20,20, -10,-20,-20,-20,-20,-20,-20,-10, -20,-30,-40,-40,-40,-40,-30,-20, -30,-40,-50,-50,-50,-50,-40,-30, -30,-40,-50,-50,-50,-50,-40,-30, -30,-40,-50,-50,-50,-50,-40,-30, -30,-40,-50,-50,-50,-50,-40,-30]
@@ -92,12 +110,17 @@
 
                 function evaluate(s) {
                     let total = 0;
+                    const blackMoves = getValidMoves(s, false).length;
+                    const whiteMoves = getValidMoves(s, true).length;
+                    
                     for(let r=0; r<8; r++) for(let c=0; c<8; c++) {
                         let p = s[r][c]; if(!p) continue;
                         let t = p.toLowerCase();
                         let val = pVals[t] + (p===t ? pst[t][r*8+c] : pst[t][(7-r)*8+c]);
                         total += (p === t) ? val : -val;
                     }
+                    // 가동성 보너스 (그랜드마스터들은 기물이 자유로운 것을 선호함)
+                    total += (blackMoves - whiteMoves) * 5;
                     return total;
                 }
 
@@ -148,6 +171,9 @@
                 }
 
                 let possible = getValidMoves(boardState, false);
+                // 수 정렬 (캡처를 먼저 고려하여 가지치기 효율 증대)
+                possible.sort((a,b) => (boardState[b.tr][b.tc] ? 1 : 0) - (boardState[a.tr][a.tc] ? 1 : 0));
+                
                 let best = null, bestV = -Infinity;
                 for(let m of possible) {
                     let ns = boardState.map(r=>[...r]); ns[m.tr][m.tc]=ns[m.fr][m.fc]; ns[m.fr][m.fc]='';
@@ -163,11 +189,11 @@
         const ai = new Worker(URL.createObjectURL(new Blob([workerCode], { type: 'application/javascript' })));
 
         function saveGame() {
-            localStorage.setItem('chess_v38_save', JSON.stringify({ boardState, capturedWhite, capturedBlack, turn, movedStatus }));
+            localStorage.setItem('chess_v39_save', JSON.stringify({ boardState, capturedWhite, capturedBlack, turn, movedStatus }));
         }
 
         function loadGame() {
-            const saved = localStorage.getItem('chess_v38_save');
+            const saved = localStorage.getItem('chess_v39_save');
             if (saved) {
                 const d = JSON.parse(saved);
                 boardState = d.boardState; capturedWhite = d.capturedWhite;
@@ -272,7 +298,7 @@
                     let movingPiece = boardState[selected.r][selected.c];
                     let cap = boardState[r][c];
                     boardState[r][c] = movingPiece; boardState[selected.r][selected.c] = '';
-                    if(isCheck(boardState, 'White')) { boardState = lastState; alert("⚠️ 왕이 노출됩니다!"); return; }
+                    if(isCheck(boardState, 'White')) { boardState = lastState; alert("⚠️ 왕이 노출되는 수입니다!"); return; }
                     pending = { fr:selected.r, fc:selected.c, tr:r, tc:c, p:movingPiece, cap:cap };
                     selected = null;
                     if(movingPiece==='P' && r===0) showPromotionUI();
@@ -305,12 +331,13 @@
             pending = null; turn = 'Black';
             document.getElementById('btn-confirm').style.display = 'none'; document.getElementById('btn-cancel').style.display = 'none';
             saveGame(); render();
-            document.getElementById('status').innerText = "AI 수 읽는 중..."; document.getElementById('ai-loader').style.visibility = 'visible';
+            document.getElementById('status').innerText = "AI가 최선의 수를 계산 중입니다..."; 
+            document.getElementById('ai-loader').style.visibility = 'visible';
             ai.postMessage({ boardState, depth: 3 });
         };
 
         window.cancelMove = () => { if(!pending) return; boardState = lastState; pending = null; document.getElementById('btn-confirm').style.display = 'none'; document.getElementById('btn-cancel').style.display = 'none'; render(); };
-        window.resetGame = () => { if(confirm("초기화하시겠습니까?")) { localStorage.removeItem('chess_v38_save'); resetGameData(); } };
+        window.resetGame = () => { if(confirm("게임을 초기화하시겠습니까?")) { localStorage.removeItem('chess_v39_save'); resetGameData(); } };
 
         ai.onmessage = (e) => {
             const m = e.data; document.getElementById('ai-loader').style.visibility = 'hidden';
@@ -319,9 +346,14 @@
                 boardState[m.tr][m.tc] = boardState[m.fr][m.fc];
                 if(boardState[m.tr][m.tc]==='p' && m.tr===7) boardState[m.tr][m.tc]='q';
                 boardState[m.fr][m.fc] = '';
+                
+                // AI 이동 후 왕/룩 상태 업데이트
                 if(boardState[m.tr][m.tc]==='k') movedStatus.bK = true;
+                if(m.fr===0 && m.fc===0) movedStatus.bR1 = true;
+                if(m.fr===0 && m.fc===7) movedStatus.bR2 = true;
+
                 turn = 'White'; saveGame(); render(); 
-                document.getElementById('status').innerText = isCheck(boardState, 'White') ? "⚠️ CHECK!" : "당신의 차례";
+                document.getElementById('status').innerText = isCheck(boardState, 'White') ? "⚠️ CHECK!" : "당신의 차례입니다";
             }
         };
 
