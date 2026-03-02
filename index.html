@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>프로 AI 체스 - v45 Professional</title>
+    <title>프로 AI 체스 - v46 Final Master</title>
     <style>
         * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
         html, body { height: 100%; margin: 0; padding: 0; overflow: hidden; background-color: #f7f3eb; }
@@ -22,7 +22,6 @@
         @media (min-width: 400px) { .square { font-size: 36px; } }
         
         .light { background-color: #f1d9b5; } .dark { background-color: #b58863; }
-        
         .selected { background-color: #bac466 !important; }
         .pending { background-color: #fce38a !important; } 
         .origin { background-color: #f6d167 !important; }
@@ -53,14 +52,14 @@
 <body>
     <div class="app-wrapper">
         <div id="ui-header">
-            <div id="status">Professional AI v45</div>
+            <div id="status">Professional Master v46</div>
             <div id="last-move">준비 완료</div>
             <div id="ai-loader"><div class="thinking-bar"></div></div>
         </div>
 
         <div class="captured-area" id="black-captured">AI 획득: </div>
         <div id="board"><div id="promotion-overlay"></div></div>
-        <div class="captured-area" id="white-captured">내가 획득: </div>
+        <div class="captured-area" id="white-captured">내 획득: </div>
         
         <div id="stats-panel">
             <div class="stats-grid">
@@ -93,15 +92,12 @@
                 };
                 function evaluate(s) {
                     let total = 0;
-                    const bMoves = getValidMoves(s, false).length;
-                    const wMoves = getValidMoves(s, true).length;
                     for(let r=0; r<8; r++) for(let c=0; c<8; c++) {
                         let p = s[r][c]; if(!p) continue;
                         let t = p.toLowerCase();
                         let val = pVals[t] + (pst[t] ? (p===t ? pst[t][r*8+c] : pst[t][(7-r)*8+c]) : 0);
                         total += (p === t) ? val : -val;
                     }
-                    total += (bMoves - wMoves) * 15;
                     return total;
                 }
                 function getValidMoves(s, isWhite) {
@@ -145,26 +141,28 @@
 
         const pieceNames = { p:'폰', n:'나이트', b:'비숍', r:'룩', q:'퀸', k:'킹', P:'폰', N:'나이트', B:'비숍', R:'룩', Q:'퀸', K:'킹' };
         const pieces = { r:'♜', n:'♞', b:'♝', q:'♛', k:'♚', p:'♟', R:'♜', N:'♞', B:'♝', Q:'♛', K:'♚', P:'♟' };
-        let boardState, capturedWhite, capturedBlack, turn, movedStatus, pending, selected, lastState;
+        let boardState, capturedWhite, capturedBlack, turn, movedStatus, pending, selected, lastState, gameOver = false;
         let moveStats = { White: { P:0, N:0, B:0, R:0, Q:0, K:0 }, Black: { p:0, n:0, b:0, r:0, q:0, k:0 } };
         const ai = new Worker(URL.createObjectURL(new Blob([workerCode], { type: 'application/javascript' })));
         const getCoord = (r, c) => String.fromCharCode(97 + c) + (8 - r);
 
         function calcDist(fr, fc, tr, tc, piece) { if (piece.toLowerCase() === 'n') return 3; return Math.max(Math.abs(tr - fr), Math.abs(tc - fc)); }
-        function saveGame() { localStorage.setItem('chess_v45_save', JSON.stringify({ boardState, capturedWhite, capturedBlack, turn, movedStatus, moveStats })); }
+        function saveGame() { localStorage.setItem('chess_v46_save', JSON.stringify({ boardState, capturedWhite, capturedBlack, turn, movedStatus, moveStats, gameOver })); }
 
         function loadGame() {
-            const saved = localStorage.getItem('chess_v45_save');
+            const saved = localStorage.getItem('chess_v46_save');
             if (saved) {
                 const d = JSON.parse(saved); boardState = d.boardState; capturedWhite = d.capturedWhite;
                 capturedBlack = d.capturedBlack; turn = d.turn; movedStatus = d.movedStatus; moveStats = d.moveStats || moveStats;
+                gameOver = d.gameOver || false;
             } else { resetGameData(); }
             render();
+            if(!gameOver && turn === 'Black') ai.postMessage({ boardState, depth: 3 });
         }
 
         function resetGameData() {
             boardState = [['r','n','b','q','k','b','n','r'],['p','p','p','p','p','p','p','p'],['','','','','','','',''],['','','','','','','',''],['','','','','','','',''],['','','','','','','',''],['P','P','P','P','P','P','P','P'],['R','N','B','Q','K','B','N','R']];
-            capturedWhite = []; capturedBlack = []; turn = 'White';
+            capturedWhite = []; capturedBlack = []; turn = 'White'; gameOver = false;
             movedStatus = { wK: false, wR1: false, wR2: false, bK: false, bR1: false, bR2: false };
             moveStats = { White: { P:0, N:0, B:0, R:0, Q:0, K:0 }, Black: { p:0, n:0, b:0, r:0, q:0, k:0 } };
             document.getElementById('last-move').innerText = "준비 완료"; saveGame(); render();
@@ -176,6 +174,22 @@
             for(let key in moveStats.White) { wPanel.innerHTML += `<div class="stats-row"><span>${key}</span><span>${moveStats.White[key]}</span></div>`; }
             bPanel.innerHTML = "<b>Black</b>";
             for(let key in moveStats.Black) { bPanel.innerHTML += `<div class="stats-row"><span>${key.toUpperCase()}</span><span>${moveStats.Black[key]}</span></div>`; }
+        }
+
+        // --- 합법적 수(Legal Moves) 체크 핵심 로직 ---
+        function getLegalMoves(s, color) {
+            const moves = [];
+            const isW = color === 'White';
+            for(let r=0; r<8; r++) for(let c=0; c<8; c++) {
+                let p = s[r][c]; if(!p || (isW ? p!==p.toUpperCase() : p!==p.toLowerCase())) continue;
+                for(let tr=0; tr<8; tr++) for(let tc=0; tc<8; tc++) {
+                    if(isValidRaw(s, r, c, tr, tc)) {
+                        let ns = s.map(row => [...row]); ns[tr][tc] = ns[r][c]; ns[r][c] = '';
+                        if(!isCheck(ns, color)) moves.push({fr:r, fc:c, tr, tc});
+                    }
+                }
+            }
+            return moves;
         }
 
         function render() {
@@ -217,6 +231,7 @@
         }
 
         window.tryCastle = (side) => {
+            if(gameOver) return;
             lastState = JSON.parse(JSON.stringify(boardState));
             if(side === 'king') { boardState[7][6]='K'; boardState[7][4]=''; boardState[7][5]='R'; boardState[7][7]=''; pending={type:'castle',side:'king',fr:7,fc:4,tr:7,tc:6,p:'K'}; }
             else { boardState[7][2]='K'; boardState[7][4]=''; boardState[7][3]='R'; boardState[7][0]=''; pending={type:'castle',side:'queen',fr:7,fc:4,tr:7,tc:2,p:'K'}; }
@@ -224,16 +239,19 @@
         }
 
         function handleSquareClick(r, c) {
-            if(turn==='Black' || pending) return;
+            if(turn==='Black' || pending || gameOver) return;
             const p=boardState[r][c];
             if(selected) {
                 if(selected.r===r && selected.c===c) selected=null;
                 else if(p && p===p.toUpperCase()) selected={r,c};
                 else if(isValidRaw(boardState, selected.r, selected.c, r, c)) {
+                    // 가상의 보드에서 체크 여부 확인 (체크 해제 강제 규칙)
+                    let ns = boardState.map(row => [...row]); ns[r][c] = ns[selected.r][selected.c]; ns[selected.r][selected.c] = '';
+                    if(isCheck(ns, 'White')) { alert("⚠️ 여전히 체크 상태거나 왕이 위험합니다!"); return; }
+                    
                     lastState = JSON.parse(JSON.stringify(boardState));
                     let movingPiece = boardState[selected.r][selected.c]; let cap = boardState[r][c];
                     boardState[r][c] = movingPiece; boardState[selected.r][selected.c] = '';
-                    if(isCheck(boardState, 'White')) { boardState = lastState; alert("⚠️ 체크 위험!"); return; }
                     pending = { fr:selected.r, fc:selected.c, tr:r, tc:c, p:movingPiece, cap:cap };
                     selected = null; if(movingPiece==='P' && r===0) showPromotionUI();
                     else { document.getElementById('btn-confirm').style.display='block'; document.getElementById('btn-cancel').style.display='block'; }
@@ -260,39 +278,60 @@
             if(!movedStatus.wK && !movedStatus.wR1 && boardState[7][1]==='' && boardState[7][2]==='' && boardState[7][3]==='' && !isAttacked(7, 2)) bq.style.display = 'block';
         }
 
+        // 게임 종료 판정 함수
+        function checkGameOver(color) {
+            const moves = getLegalMoves(boardState, color);
+            if(moves.length === 0) {
+                gameOver = true;
+                saveGame();
+                if(isCheck(boardState, color)) {
+                    alert(`🏁 체크메이트! ${color==='White'?'AI(Black)':'사용자(White)'} 승리!`);
+                    document.getElementById('status').innerText = "게임 종료: 체크메이트";
+                } else {
+                    alert("🏁 스테일메이트! 무승부입니다.");
+                    document.getElementById('status').innerText = "게임 종료: 스테일메이트";
+                }
+                return true;
+            }
+            return false;
+        }
+
         window.confirmMove = () => {
             if (pending.cap) capturedWhite.push(pending.cap);
-            // 기물 명칭을 포함한 이동 로그 표시
             const pName = pieceNames[pending.p];
             document.getElementById('last-move').innerText = "나: " + pName + " " + getCoord(pending.fr, pending.fc) + " ➔ " + getCoord(pending.tr, pending.tc);
-            
             const dist = calcDist(pending.fr, pending.fc, pending.tr, pending.tc, pending.p); moveStats.White[pending.p.toUpperCase()] += dist;
             if(pending.p==='K') movedStatus.wK = true;
             if(pending.fr===7 && pending.fc===0) movedStatus.wR1 = true;
             if(pending.fr===7 && pending.fc===7) movedStatus.wR2 = true;
             pending = null; turn = 'Black'; document.getElementById('btn-confirm').style.display = 'none'; document.getElementById('btn-cancel').style.display = 'none';
-            saveGame(); render(); document.getElementById('status').innerText = "AI 수 읽는 중..."; document.getElementById('ai-loader').style.visibility = 'visible';
+            
+            saveGame(); render(); 
+            if(checkGameOver('Black')) return; // 상대방(AI)이 둘 수가 있는지 확인
+
+            document.getElementById('status').innerText = "AI 수 읽는 중..."; document.getElementById('ai-loader').style.visibility = 'visible';
             ai.postMessage({ boardState, depth: 3 });
         };
 
         window.cancelMove = () => { if(!pending) return; boardState = lastState; pending = null; document.getElementById('btn-confirm').style.display = 'none'; document.getElementById('btn-cancel').style.display = 'none'; render(); };
-        window.resetGame = () => { if(confirm("초기화하시겠습니까?")) { localStorage.removeItem('chess_v45_save'); resetGameData(); } };
+        window.resetGame = () => { if(confirm("초기화하시겠습니까?")) resetGameData(); };
 
         ai.onmessage = (e) => {
             const m = e.data; document.getElementById('ai-loader').style.visibility = 'hidden';
             if (m) {
-                const piece = boardState[m.fr][m.fc];
-                const pName = pieceNames[piece];
+                const piece = boardState[m.fr][m.fc]; const pName = pieceNames[piece];
                 const dist = calcDist(m.fr, m.fc, m.tr, m.tc, piece); moveStats.Black[piece.toLowerCase()] += dist;
-                
-                // AI의 이동 기물 명칭 포함 표시
                 document.getElementById('last-move').innerText += " | AI: " + pName + " " + getCoord(m.fr, m.fc) + " ➔ " + getCoord(m.tr, m.tc);
-                
                 if (boardState[m.tr][m.tc]) capturedBlack.push(boardState[m.tr][m.tc]);
                 boardState[m.tr][m.tc] = boardState[m.fr][m.fc];
                 if(boardState[m.tr][m.tc]==='p' && m.tr===7) boardState[m.tr][m.tc]='q';
                 boardState[m.fr][m.fc] = ''; if(boardState[m.tr][m.tc]==='k') movedStatus.bK = true;
-                turn = 'White'; saveGame(); render(); document.getElementById('status').innerText = isCheck(boardState, 'White') ? "⚠️ CHECK!" : "당신의 차례입니다";
+                turn = 'White'; 
+                
+                saveGame(); render();
+                if(checkGameOver('White')) return; // 사용자(나)가 둘 수가 있는지 확인
+                
+                document.getElementById('status').innerText = isCheck(boardState, 'White') ? "⚠️ CHECK!" : "당신의 차례입니다";
             }
         };
         loadGame();
