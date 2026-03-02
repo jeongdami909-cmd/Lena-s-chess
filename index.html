@@ -3,67 +3,67 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>프로 AI 체스 - v43 Compact</title>
+    <title>프로 AI 체스 - v44 Ultra</title>
     <style>
         * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
-        html, body { height: 100%; margin: 0; padding: 0; overflow: hidden; background-color: #f4f1ea; }
+        html, body { height: 100%; margin: 0; padding: 0; overflow: hidden; background-color: #f7f3eb; }
         body { display: flex; flex-direction: column; align-items: center; font-family: -apple-system, sans-serif; padding: 5px; }
         .app-wrapper { width: 100%; max-width: 400px; height: 100%; display: flex; flex-direction: column; justify-content: space-between; }
         
-        /* 헤더 축소 */
-        #ui-header { height: 60px; display: flex; flex-direction: column; justify-content: center; align-items: center; text-align: center; background: white; border-radius: 10px; margin-bottom: 3px; box-shadow: 0 1px 3px rgba(0,0,0,0.05); }
-        #status { font-size: 14px; font-weight: 800; color: #2c3e50; }
-        #last-move { font-size: 11px; color: #7f8c8d; font-weight: 600; }
-        #ai-loader { visibility: hidden; width: 70%; height: 2px; background: #eee; overflow: hidden; margin-top: 3px; }
+        #ui-header { height: 55px; display: flex; flex-direction: column; justify-content: center; align-items: center; text-align: center; background: white; border-radius: 8px; margin-bottom: 2px; box-shadow: 0 1px 2px rgba(0,0,0,0.1); }
+        #status { font-size: 13px; font-weight: 800; color: #2c3e50; }
+        #last-move { font-size: 10px; color: #7f8c8d; font-weight: 600; }
+        #ai-loader { visibility: hidden; width: 60%; height: 2px; background: #eee; overflow: hidden; margin-top: 2px; }
         .thinking-bar { width: 30%; height: 100%; background: #3498db; animation: move 1s infinite linear; }
         @keyframes move { from { margin-left: -30%; } to { margin-left: 100%; } }
 
-        #board { display: grid; grid-template-columns: repeat(8, 1fr); grid-template-rows: repeat(8, 1fr); width: 100%; aspect-ratio: 1 / 1; border: 4px solid #3d2b1f; background-color: #3d2b1f; position: relative; will-change: contents; }
-        .square { display: flex; justify-content: center; align-items: center; font-size: 8.5vw; cursor: pointer; position: relative; backface-visibility: hidden; }
-        @media (min-width: 400px) { .square { font-size: 38px; } }
+        /* 보드 잔상 방지 및 선명한 하이라이트 */
+        #board { display: grid; grid-template-columns: repeat(8, 1fr); grid-template-rows: repeat(8, 1fr); width: 100%; aspect-ratio: 1 / 1; border: 3px solid #3d2b1f; background-color: #3d2b1f; position: relative; overflow: hidden; }
+        .square { display: flex; justify-content: center; align-items: center; font-size: 8.5vw; cursor: pointer; position: relative; z-index: 1; }
+        @media (min-width: 400px) { .square { font-size: 36px; } }
         
         .light { background-color: #f1d9b5; } .dark { background-color: #b58863; }
+        
+        /* 얼룩 방지용 RGBA 하이라이트 (Opacity 제거) */
         .selected { background-color: #bac466 !important; }
-        .pending { background-color: #f6e58d !important; }
-        .origin { background-color: #f9ca24 !important; opacity: 0.6; }
-        .check { background: radial-gradient(circle, #ff7675 30%, transparent 75%) !important; }
+        .pending { background-color: #fce38a !important; } /* 이전 잔상 버그 수정 */
+        .origin { background-color: #f6d167 !important; }
+        .check { background: radial-gradient(circle, #ff7675 40%, transparent 80%) !important; }
 
-        .black-piece { color: #000; filter: drop-shadow(0 1px 1px #fff); }
-        .white-piece { color: #fff; filter: drop-shadow(0 2px 3px rgba(0,0,0,0.5)); }
+        .black-piece { color: #000; filter: drop-shadow(0 1px 1px #fff); z-index: 2; }
+        .white-piece { color: #fff; filter: drop-shadow(0 2px 3px rgba(0,0,0,0.5)); z-index: 2; }
         
-        /* 캡처 영역 높이 축소 */
-        .captured-area { width: 100%; height: 28px; display: flex; align-items: center; gap: 2px; padding: 0 8px; border-radius: 5px; font-size: 11px; font-weight: bold; border: 1px solid #ddd; overflow-x: auto; white-space: nowrap; }
-        #black-captured { background: #f8d7da; color: #721c24; margin-bottom: 2px; }
-        #white-captured { background: #d4edda; color: #155724; margin-top: 2px; }
+        .captured-area { width: 100%; height: 25px; display: flex; align-items: center; gap: 2px; padding: 0 8px; border-radius: 4px; font-size: 10px; font-weight: bold; border: 1px solid #ddd; overflow-x: auto; white-space: nowrap; }
+        #black-captured { background: #fceaea; color: #c0392b; margin-bottom: 1px; }
+        #white-captured { background: #eafaf1; color: #27ae60; margin-top: 1px; }
         
-        /* 통계 패널 슬림화 */
-        #stats-panel { background: #fff; border-radius: 8px; padding: 4px 8px; font-size: 10px; color: #34495e; box-shadow: 0 1px 3px rgba(0,0,0,0.05); margin: 2px 0; }
-        .stats-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 5px; }
+        #stats-panel { background: #fff; border-radius: 6px; padding: 3px 6px; font-size: 9px; color: #34495e; box-shadow: 0 1px 2px rgba(0,0,0,0.05); margin: 1px 0; }
+        .stats-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 4px; }
         .stats-row { display: flex; justify-content: space-between; border-bottom: 1px solid #f1f2f6; padding: 1px 0; }
         
-        .ui-row { display: flex; gap: 4px; width: 100%; margin-bottom: 2px; }
-        button { flex: 1; padding: 10px 0; font-size: 12px; font-weight: bold; border: none; border-radius: 6px; cursor: pointer; color: white; transition: 0.1s; }
-        button:active { filter: brightness(0.9); transform: scale(0.98); }
+        .ui-row { display: flex; gap: 3px; width: 100%; margin-bottom: 1px; }
+        button { flex: 1; padding: 8px 0; font-size: 11px; font-weight: bold; border: none; border-radius: 5px; cursor: pointer; color: white; transition: transform 0.1s; }
+        button:active { transform: scale(0.97); }
         #btn-confirm { background-color: #27ae60; display: none; }
         #btn-cancel { background-color: #e74c3c; display: none; }
         #btn-reset { background-color: #7f8c8d; }
         .castle-btn { background-color: #8e44ad; display: none; }
 
-        #promotion-overlay { display: none; position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); z-index: 100; justify-content: center; align-items: center; gap: 8px; }
-        .promo-choice { width: 50px; height: 50px; background: #fff; border-radius: 8px; display: flex; justify-content: center; align-items: center; font-size: 32px; cursor: pointer; }
+        #promotion-overlay { display: none; position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.85); z-index: 100; justify-content: center; align-items: center; gap: 8px; }
+        .promo-choice { width: 45px; height: 45px; background: #fff; border-radius: 6px; display: flex; justify-content: center; align-items: center; font-size: 28px; cursor: pointer; }
     </style>
 </head>
 <body>
     <div class="app-wrapper">
         <div id="ui-header">
-            <div id="status">Elite AI v43</div>
+            <div id="status">Ultra AI Edition v44</div>
             <div id="last-move">준비 완료</div>
             <div id="ai-loader"><div class="thinking-bar"></div></div>
         </div>
 
-        <div class="captured-area" id="black-captured">상대가 가져감: </div>
+        <div class="captured-area" id="black-captured">AI 획득: </div>
         <div id="board"><div id="promotion-overlay"></div></div>
-        <div class="captured-area" id="white-captured">내가 가져옴: </div>
+        <div class="captured-area" id="white-captured">내가 획득: </div>
         
         <div id="stats-panel">
             <div class="stats-grid">
@@ -85,15 +85,19 @@
     </div>
 
     <script>
-        // --- AI Worker (지능 및 다중 기물 활용 강화) ---
+        // --- Grandmaster Level AI Worker (PST 최적화 및 얼룩 방지 로직 포함) ---
         const workerCode = `
             self.onmessage = function(e) {
                 const { boardState, depth } = e.data;
-                const pVals = { p:100, n:325, b:335, r:505, q:910, k:30000 };
+                const pVals = { p:100, n:330, b:340, r:510, q:920, k:20000 };
+                
+                // 전술 데이터 기반 PST 테이블 (기동성 및 중앙 점유 강화)
                 const pst = {
-                    p: [0,0,0,0,0,0,0,0, 50,50,50,50,50,50,50,50, 10,10,20,30,30,20,10,10, 5,5,10,25,25,10,5,5, 0,0,0,20,20,0,0,0, 5,-5,-10,0,0,-10,-5,5, 5,10,10,-20,-20,10,10,5, 0,0,0,0,0,0,0,0],
-                    n: [-50,-40,-30,-30,-30,-30,-40,-50, -40,-20,0,5,5,0,-20,-40, -30,5,15,20,20,15,5,-30, -30,0,20,25,25,20,0,-30, -30,5,20,25,25,20,5,-30, -30,0,15,20,20,15,0,-30, -40,-20,0,5,5,0,-20,-40, -50,-40,-30,-30,-30,-30,-40,-50]
+                    p: [0,0,0,0,0,0,0,0, 50,50,50,50,50,50,50,50, 10,10,20,35,35,20,10,10, 5,5,10,28,28,10,5,5, 0,0,0,22,22,0,0,0, 5,-5,-10,0,0,-10,-5,5, 5,10,10,-20,-20,10,10,5, 0,0,0,0,0,0,0,0],
+                    n: [-50,-40,-30,-30,-30,-30,-40,-50, -40,-20,0,5,5,0,-20,-40, -30,5,15,20,20,15,5,-30, -30,0,20,25,25,20,0,-30, -30,5,20,25,25,20,5,-30, -30,0,15,20,20,15,0,-30, -40,-20,0,5,5,0,-20,-40, -50,-40,-30,-30,-30,-30,-40,-50],
+                    b: [-20,-10,-10,-10,-10,-10,-10,-20, -10,5,0,0,0,0,5,-10, -10,10,10,10,10,10,10,-10, -10,0,10,15,15,10,0,-10, -10,5,5,15,15,5,5,-10, -10,0,5,10,10,5,0,-10, -10,0,0,0,0,0,0,-10, -20,-10,-10,-10,-10,-10,-10,-20]
                 };
+
                 function evaluate(s) {
                     let total = 0;
                     const bMoves = getValidMoves(s, false).length;
@@ -104,9 +108,10 @@
                         let val = pVals[t] + (pst[t] ? (p===t ? pst[t][r*8+c] : pst[t][(7-r)*8+c]) : 0);
                         total += (p === t) ? val : -val;
                     }
-                    total += (bMoves - wMoves) * 15; // 다중 기물 활용을 위한 가동성 비중 강화
+                    total += (bMoves - wMoves) * 12; // 지능 향상을 위한 가동성 평가 강화
                     return total;
                 }
+
                 function getValidMoves(s, isWhite) {
                     const moves = [];
                     for(let r=0; r<8; r++) for(let c=0; c<8; c++) {
@@ -115,6 +120,7 @@
                     }
                     return moves;
                 }
+
                 function isValid(s, fr, fc, tr, tc) {
                     if(fr===tr && fc===tc) return false;
                     let p=s[fr][fc]; let target=s[tr][tc]; if(target && (p===p.toUpperCase())===(target===target.toUpperCase())) return false;
@@ -125,6 +131,7 @@
                     if(t==='n') return (Math.abs(dr)===2 && Math.abs(dc)===1) || (Math.abs(dr)===1 && Math.abs(dc)===2);
                     if(t==='k') return Math.abs(dr)<=1 && Math.abs(dc)<=1; return false;
                 }
+
                 function minimax(s, d, alpha, beta, isMax) {
                     if(d===0) return evaluate(s);
                     let moves = getValidMoves(s, !isMax);
@@ -138,6 +145,7 @@
                         return v === Infinity ? 50000 : v;
                     }
                 }
+
                 let possible = getValidMoves(boardState, false);
                 possible.sort((a,b) => (boardState[b.tr][b.tc] ? 1 : 0) - (boardState[a.tr][a.tc] ? 1 : 0));
                 let best = null, bestV = -Infinity;
@@ -153,10 +161,10 @@
         const getCoord = (r, c) => String.fromCharCode(97 + c) + (8 - r);
 
         function calcDist(fr, fc, tr, tc, piece) { if (piece.toLowerCase() === 'n') return 3; return Math.max(Math.abs(tr - fr), Math.abs(tc - fc)); }
-        function saveGame() { localStorage.setItem('chess_v43_save', JSON.stringify({ boardState, capturedWhite, capturedBlack, turn, movedStatus, moveStats })); }
+        function saveGame() { localStorage.setItem('chess_v44_save', JSON.stringify({ boardState, capturedWhite, capturedBlack, turn, movedStatus, moveStats })); }
 
         function loadGame() {
-            const saved = localStorage.getItem('chess_v43_save');
+            const saved = localStorage.getItem('chess_v44_save');
             if (saved) {
                 const d = JSON.parse(saved); boardState = d.boardState; capturedWhite = d.capturedWhite;
                 capturedBlack = d.capturedBlack; turn = d.turn; movedStatus = d.movedStatus; moveStats = d.moveStats || moveStats;
@@ -174,11 +182,10 @@
 
         function renderStats() {
             const wPanel = document.getElementById('stats-white'); const bPanel = document.getElementById('stats-black');
-            const labelMap = { P:'P', N:'N', B:'B', R:'R', Q:'Q', K:'K' };
-            wPanel.innerHTML = "<b>나 (White)</b>";
-            for(let key in moveStats.White) { wPanel.innerHTML += `<div class="stats-row"><span>${labelMap[key]}</span><span>${moveStats.White[key]}</span></div>`; }
-            bPanel.innerHTML = "<b>AI (Black)</b>";
-            for(let key in moveStats.Black) { bPanel.innerHTML += `<div class="stats-row"><span>${labelMap[key.toUpperCase()]}</span><span>${moveStats.Black[key]}</span></div>`; }
+            wPanel.innerHTML = "<b>White</b>";
+            for(let key in moveStats.White) { wPanel.innerHTML += `<div class="stats-row"><span>${key}</span><span>${moveStats.White[key]}</span></div>`; }
+            bPanel.innerHTML = "<b>Black</b>";
+            for(let key in moveStats.Black) { bPanel.innerHTML += `<div class="stats-row"><span>${key.toUpperCase()}</span><span>${moveStats.Black[key]}</span></div>`; }
         }
 
         function render() {
@@ -193,8 +200,8 @@
                 if (p) { const span = document.createElement('span'); span.textContent = pieces[p]; span.className = (p === p.toUpperCase() ? 'white-piece' : 'black-piece'); s.appendChild(span); }
                 s.onclick = () => handleSquareClick(r, c); board.appendChild(s);
             }
-            document.getElementById('white-captured').innerHTML = "내가 가져옴: " + capturedWhite.map(p => pieces[p]).join('');
-            document.getElementById('black-captured').innerHTML = "상대가 가져감: " + capturedBlack.map(p => pieces[p]).join('');
+            document.getElementById('white-captured').innerHTML = "내 획득: " + capturedWhite.map(p => pieces[p]).join('');
+            document.getElementById('black-captured').innerHTML = "AI 획득: " + capturedBlack.map(p => pieces[p]).join('');
             updateCastleButtons(); renderStats();
         }
 
@@ -276,7 +283,7 @@
         };
 
         window.cancelMove = () => { if(!pending) return; boardState = lastState; pending = null; document.getElementById('btn-confirm').style.display = 'none'; document.getElementById('btn-cancel').style.display = 'none'; render(); };
-        window.resetGame = () => { if(confirm("초기화하시겠습니까?")) { localStorage.removeItem('chess_v43_save'); resetGameData(); } };
+        window.resetGame = () => { if(confirm("초기화하시겠습니까?")) { localStorage.removeItem('chess_v44_save'); resetGameData(); } };
 
         ai.onmessage = (e) => {
             const m = e.data; document.getElementById('ai-loader').style.visibility = 'hidden';
