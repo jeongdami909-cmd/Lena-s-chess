@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>프로 AI 체스 - v44 Ultra</title>
+    <title>프로 AI 체스 - v45 Professional</title>
     <style>
         * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
         html, body { height: 100%; margin: 0; padding: 0; overflow: hidden; background-color: #f7f3eb; }
@@ -12,21 +12,19 @@
         
         #ui-header { height: 55px; display: flex; flex-direction: column; justify-content: center; align-items: center; text-align: center; background: white; border-radius: 8px; margin-bottom: 2px; box-shadow: 0 1px 2px rgba(0,0,0,0.1); }
         #status { font-size: 13px; font-weight: 800; color: #2c3e50; }
-        #last-move { font-size: 10px; color: #7f8c8d; font-weight: 600; }
+        #last-move { font-size: 11px; color: #2980b9; margin-top: 2px; font-weight: 800; }
         #ai-loader { visibility: hidden; width: 60%; height: 2px; background: #eee; overflow: hidden; margin-top: 2px; }
         .thinking-bar { width: 30%; height: 100%; background: #3498db; animation: move 1s infinite linear; }
         @keyframes move { from { margin-left: -30%; } to { margin-left: 100%; } }
 
-        /* 보드 잔상 방지 및 선명한 하이라이트 */
         #board { display: grid; grid-template-columns: repeat(8, 1fr); grid-template-rows: repeat(8, 1fr); width: 100%; aspect-ratio: 1 / 1; border: 3px solid #3d2b1f; background-color: #3d2b1f; position: relative; overflow: hidden; }
         .square { display: flex; justify-content: center; align-items: center; font-size: 8.5vw; cursor: pointer; position: relative; z-index: 1; }
         @media (min-width: 400px) { .square { font-size: 36px; } }
         
         .light { background-color: #f1d9b5; } .dark { background-color: #b58863; }
         
-        /* 얼룩 방지용 RGBA 하이라이트 (Opacity 제거) */
         .selected { background-color: #bac466 !important; }
-        .pending { background-color: #fce38a !important; } /* 이전 잔상 버그 수정 */
+        .pending { background-color: #fce38a !important; } 
         .origin { background-color: #f6d167 !important; }
         .check { background: radial-gradient(circle, #ff7675 40%, transparent 80%) !important; }
 
@@ -43,7 +41,6 @@
         
         .ui-row { display: flex; gap: 3px; width: 100%; margin-bottom: 1px; }
         button { flex: 1; padding: 8px 0; font-size: 11px; font-weight: bold; border: none; border-radius: 5px; cursor: pointer; color: white; transition: transform 0.1s; }
-        button:active { transform: scale(0.97); }
         #btn-confirm { background-color: #27ae60; display: none; }
         #btn-cancel { background-color: #e74c3c; display: none; }
         #btn-reset { background-color: #7f8c8d; }
@@ -56,7 +53,7 @@
 <body>
     <div class="app-wrapper">
         <div id="ui-header">
-            <div id="status">Ultra AI Edition v44</div>
+            <div id="status">Professional AI v45</div>
             <div id="last-move">준비 완료</div>
             <div id="ai-loader"><div class="thinking-bar"></div></div>
         </div>
@@ -85,19 +82,15 @@
     </div>
 
     <script>
-        // --- Grandmaster Level AI Worker (PST 최적화 및 얼룩 방지 로직 포함) ---
         const workerCode = `
             self.onmessage = function(e) {
                 const { boardState, depth } = e.data;
-                const pVals = { p:100, n:330, b:340, r:510, q:920, k:20000 };
-                
-                // 전술 데이터 기반 PST 테이블 (기동성 및 중앙 점유 강화)
+                const pVals = { p:100, n:335, b:345, r:520, q:950, k:25000 };
                 const pst = {
-                    p: [0,0,0,0,0,0,0,0, 50,50,50,50,50,50,50,50, 10,10,20,35,35,20,10,10, 5,5,10,28,28,10,5,5, 0,0,0,22,22,0,0,0, 5,-5,-10,0,0,-10,-5,5, 5,10,10,-20,-20,10,10,5, 0,0,0,0,0,0,0,0],
-                    n: [-50,-40,-30,-30,-30,-30,-40,-50, -40,-20,0,5,5,0,-20,-40, -30,5,15,20,20,15,5,-30, -30,0,20,25,25,20,0,-30, -30,5,20,25,25,20,5,-30, -30,0,15,20,20,15,0,-30, -40,-20,0,5,5,0,-20,-40, -50,-40,-30,-30,-30,-30,-40,-50],
-                    b: [-20,-10,-10,-10,-10,-10,-10,-20, -10,5,0,0,0,0,5,-10, -10,10,10,10,10,10,10,-10, -10,0,10,15,15,10,0,-10, -10,5,5,15,15,5,5,-10, -10,0,5,10,10,5,0,-10, -10,0,0,0,0,0,0,-10, -20,-10,-10,-10,-10,-10,-10,-20]
+                    p: [0,0,0,0,0,0,0,0, 50,50,50,50,50,50,50,50, 15,15,25,40,40,25,15,15, 5,5,15,30,30,15,5,5, 0,0,0,25,25,0,0,0, 5,-5,-10,0,0,-10,-5,5, 5,10,10,-25,-25,10,10,5, 0,0,0,0,0,0,0,0],
+                    n: [-50,-40,-30,-30,-30,-30,-40,-50, -40,-20,0,10,10,0,-20,-40, -30,5,20,25,25,20,5,-30, -30,0,25,30,30,25,0,-30, -30,5,25,30,30,25,5,-30, -30,0,20,25,25,20,0,-30, -40,-20,0,10,10,0,-20,-40, -50,-40,-30,-30,-30,-30,-40,-50],
+                    b: [-20,-10,-10,-10,-10,-10,-10,-20, -10,5,0,0,0,0,5,-10, -10,15,15,15,15,15,15,-10, -10,0,15,20,20,15,0,-10, -10,5,5,20,20,5,5,-10, -10,0,5,15,15,5,0,-10, -10,0,0,0,0,0,0,-10, -20,-10,-10,-10,-10,-10,-10,-20]
                 };
-
                 function evaluate(s) {
                     let total = 0;
                     const bMoves = getValidMoves(s, false).length;
@@ -108,10 +101,9 @@
                         let val = pVals[t] + (pst[t] ? (p===t ? pst[t][r*8+c] : pst[t][(7-r)*8+c]) : 0);
                         total += (p === t) ? val : -val;
                     }
-                    total += (bMoves - wMoves) * 12; // 지능 향상을 위한 가동성 평가 강화
+                    total += (bMoves - wMoves) * 15;
                     return total;
                 }
-
                 function getValidMoves(s, isWhite) {
                     const moves = [];
                     for(let r=0; r<8; r++) for(let c=0; c<8; c++) {
@@ -120,7 +112,6 @@
                     }
                     return moves;
                 }
-
                 function isValid(s, fr, fc, tr, tc) {
                     if(fr===tr && fc===tc) return false;
                     let p=s[fr][fc]; let target=s[tr][tc]; if(target && (p===p.toUpperCase())===(target===target.toUpperCase())) return false;
@@ -131,7 +122,6 @@
                     if(t==='n') return (Math.abs(dr)===2 && Math.abs(dc)===1) || (Math.abs(dr)===1 && Math.abs(dc)===2);
                     if(t==='k') return Math.abs(dr)<=1 && Math.abs(dc)<=1; return false;
                 }
-
                 function minimax(s, d, alpha, beta, isMax) {
                     if(d===0) return evaluate(s);
                     let moves = getValidMoves(s, !isMax);
@@ -145,7 +135,6 @@
                         return v === Infinity ? 50000 : v;
                     }
                 }
-
                 let possible = getValidMoves(boardState, false);
                 possible.sort((a,b) => (boardState[b.tr][b.tc] ? 1 : 0) - (boardState[a.tr][a.tc] ? 1 : 0));
                 let best = null, bestV = -Infinity;
@@ -154,6 +143,7 @@
             };
         `;
 
+        const pieceNames = { p:'폰', n:'나이트', b:'비숍', r:'룩', q:'퀸', k:'킹', P:'폰', N:'나이트', B:'비숍', R:'룩', Q:'퀸', K:'킹' };
         const pieces = { r:'♜', n:'♞', b:'♝', q:'♛', k:'♚', p:'♟', R:'♜', N:'♞', B:'♝', Q:'♛', K:'♚', P:'♟' };
         let boardState, capturedWhite, capturedBlack, turn, movedStatus, pending, selected, lastState;
         let moveStats = { White: { P:0, N:0, B:0, R:0, Q:0, K:0 }, Black: { p:0, n:0, b:0, r:0, q:0, k:0 } };
@@ -161,10 +151,10 @@
         const getCoord = (r, c) => String.fromCharCode(97 + c) + (8 - r);
 
         function calcDist(fr, fc, tr, tc, piece) { if (piece.toLowerCase() === 'n') return 3; return Math.max(Math.abs(tr - fr), Math.abs(tc - fc)); }
-        function saveGame() { localStorage.setItem('chess_v44_save', JSON.stringify({ boardState, capturedWhite, capturedBlack, turn, movedStatus, moveStats })); }
+        function saveGame() { localStorage.setItem('chess_v45_save', JSON.stringify({ boardState, capturedWhite, capturedBlack, turn, movedStatus, moveStats })); }
 
         function loadGame() {
-            const saved = localStorage.getItem('chess_v44_save');
+            const saved = localStorage.getItem('chess_v45_save');
             if (saved) {
                 const d = JSON.parse(saved); boardState = d.boardState; capturedWhite = d.capturedWhite;
                 capturedBlack = d.capturedBlack; turn = d.turn; movedStatus = d.movedStatus; moveStats = d.moveStats || moveStats;
@@ -272,7 +262,10 @@
 
         window.confirmMove = () => {
             if (pending.cap) capturedWhite.push(pending.cap);
-            document.getElementById('last-move').innerText = "나: " + getCoord(pending.fr, pending.fc) + " ➔ " + getCoord(pending.tr, pending.tc);
+            // 기물 명칭을 포함한 이동 로그 표시
+            const pName = pieceNames[pending.p];
+            document.getElementById('last-move').innerText = "나: " + pName + " " + getCoord(pending.fr, pending.fc) + " ➔ " + getCoord(pending.tr, pending.tc);
+            
             const dist = calcDist(pending.fr, pending.fc, pending.tr, pending.tc, pending.p); moveStats.White[pending.p.toUpperCase()] += dist;
             if(pending.p==='K') movedStatus.wK = true;
             if(pending.fr===7 && pending.fc===0) movedStatus.wR1 = true;
@@ -283,13 +276,18 @@
         };
 
         window.cancelMove = () => { if(!pending) return; boardState = lastState; pending = null; document.getElementById('btn-confirm').style.display = 'none'; document.getElementById('btn-cancel').style.display = 'none'; render(); };
-        window.resetGame = () => { if(confirm("초기화하시겠습니까?")) { localStorage.removeItem('chess_v44_save'); resetGameData(); } };
+        window.resetGame = () => { if(confirm("초기화하시겠습니까?")) { localStorage.removeItem('chess_v45_save'); resetGameData(); } };
 
         ai.onmessage = (e) => {
             const m = e.data; document.getElementById('ai-loader').style.visibility = 'hidden';
             if (m) {
-                const piece = boardState[m.fr][m.fc]; const dist = calcDist(m.fr, m.fc, m.tr, m.tc, piece); moveStats.Black[piece.toLowerCase()] += dist;
-                document.getElementById('last-move').innerText += " | AI: " + getCoord(m.fr, m.fc) + " ➔ " + getCoord(m.tr, m.tc);
+                const piece = boardState[m.fr][m.fc];
+                const pName = pieceNames[piece];
+                const dist = calcDist(m.fr, m.fc, m.tr, m.tc, piece); moveStats.Black[piece.toLowerCase()] += dist;
+                
+                // AI의 이동 기물 명칭 포함 표시
+                document.getElementById('last-move').innerText += " | AI: " + pName + " " + getCoord(m.fr, m.fc) + " ➔ " + getCoord(m.tr, m.tc);
+                
                 if (boardState[m.tr][m.tc]) capturedBlack.push(boardState[m.tr][m.tc]);
                 boardState[m.tr][m.tc] = boardState[m.fr][m.fc];
                 if(boardState[m.tr][m.tc]==='p' && m.tr===7) boardState[m.tr][m.tc]='q';
